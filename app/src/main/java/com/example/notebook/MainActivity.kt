@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class MainActivity : AppCompatActivity() {
 
-    private val notessList = ArrayList<Notes>()
+    private var notessList = ArrayList<Notes>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,9 +21,9 @@ class MainActivity : AppCompatActivity() {
 
         val notesRecyclerView=findViewById<RecyclerView>(R.id.notesRecyclerView)
         val add_button: Button = findViewById(R.id.add_button)
+
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
-
         val adapter = NotessAdapter(notessList)
         notesRecyclerView.adapter = adapter
 
@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
     inner class NotessAdapter(val notessList: List<Notes>) : RecyclerView.Adapter<NotessAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val newsTitle: TextView = view.findViewById(R.id.notessTitle)
+            val newsTitle: TextView = view.findViewById(R.id.notesTitle)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
             val holder = ViewHolder(view)
             holder.itemView.setOnClickListener {
                 val notes = notessList[holder.adapterPosition]
-                //NewsContentActivity.actionStart(parent.context, news.title, news.content);
+                //NotesContentActivity.actionStart(parent.context, news.title, news.content);
                 Toast.makeText(parent.context,"test",Toast.LENGTH_SHORT).show()
             }
             return holder
