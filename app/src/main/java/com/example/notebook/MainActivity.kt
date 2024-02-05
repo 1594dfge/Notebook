@@ -1,7 +1,9 @@
 package com.example.notebook
 
+import android.content.ContentValues
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 class MainActivity : AppCompatActivity() {
 
     private var notessList = ArrayList<Notes>()
+    val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,12 +25,23 @@ class MainActivity : AppCompatActivity() {
         val notesRecyclerView=findViewById<RecyclerView>(R.id.notesRecyclerView)
         val add_button: Button = findViewById(R.id.add_button)
 
+        dbHelper.writableDatabase
+
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
+        get_Notes()
         val adapter = NotessAdapter(notessList)
         notesRecyclerView.adapter = adapter
 
         add_button.setOnClickListener {
+            val db = dbHelper.writableDatabase
+            val values1 = ContentValues().apply {
+                // 開始組裝第一條數據
+                put("title", "abc")
+                put("content", "123")
+            }
+            db.insert("Notes", null, values1) // 插入第一条数据
+
             notessList.add(Notes("abc","123"))
             adapter.notifyDataSetChanged()
         }
@@ -35,6 +49,23 @@ class MainActivity : AppCompatActivity() {
 //
 //        val adapter = NotessAdapter(notessList)
 //        notesRecyclerView.adapter = adapter
+    }
+
+    fun get_Notes(){
+        val db = dbHelper.writableDatabase
+        // 查詢Book表中所有的數據
+        val cursor = db.query("Notes", null, null, null, null, null, null)
+        if (cursor.moveToFirst()) {
+            do {
+                // 遍歷Cursor對象，取出數據並打印
+                val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
+                val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
+                notessList.add(Notes(title,content))
+//                Log.d("MainActivity", "book name is $title")
+//                Log.d("MainActivity", "book author is $content")
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
     }
 
     inner class NotessAdapter(val notessList: List<Notes>) : RecyclerView.Adapter<NotessAdapter.ViewHolder>() {
