@@ -3,6 +3,7 @@ package com.example.notebook
 import android.content.ContentValues
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,8 +24,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val up_toolbar: Toolbar = findViewById(R.id.up_toolbar)
-        setSupportActionBar(up_toolbar)
+        val top_toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(top_toolbar)
 
         val notesRecyclerView=findViewById<RecyclerView>(R.id.notesRecyclerView)
         val add_button: Button = findViewById(R.id.add_button)
@@ -48,10 +50,19 @@ class MainActivity : AppCompatActivity() {
             notessList.add(Notes("abc","123"))
             adapter.notifyDataSetChanged()
         }
+
 //        notessList.add(Notes("a","123"))
-//
 //        val adapter = NotessAdapter(notessList)
 //        notesRecyclerView.adapter = adapter
+
+        val bottom_navigation: BottomNavigationView = findViewById(R.id.navigation)
+        bottom_navigation.setOnItemReselectedListener {item ->
+            when(item.itemId){
+                R.id.delete -> {
+                    Log.d("testsss", "onNavigationItemSelected: ")
+                }
+            }
+        }
     }
 
     fun get_Notes(){
@@ -96,4 +107,5 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount() = notessList.size
 
     }
+
 }
