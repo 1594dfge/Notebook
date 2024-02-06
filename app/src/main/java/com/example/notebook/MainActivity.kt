@@ -3,13 +3,13 @@ package com.example.notebook
 import android.content.ContentValues
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -21,6 +21,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val up_toolbar: Toolbar = findViewById(R.id.up_toolbar)
+        setSupportActionBar(up_toolbar)
 
         val notesRecyclerView=findViewById<RecyclerView>(R.id.notesRecyclerView)
         val add_button: Button = findViewById(R.id.add_button)
