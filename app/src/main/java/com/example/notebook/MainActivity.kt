@@ -7,13 +7,13 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,11 +24,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val top_toolbar: Toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(top_toolbar)
-
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
         val notesRecyclerView=findViewById<RecyclerView>(R.id.notesRecyclerView)
-        val add_button: Button = findViewById(R.id.add_button)
+        val add_button: FloatingActionButton = findViewById(R.id.add_button)
+        val bottom_navigation: BottomNavigationView = findViewById(R.id.bottomnavigation)
+        val top_navigation: BottomNavigationView = findViewById(R.id.topnavigation)
+
+        setSupportActionBar(toolbar)
 
         dbHelper.writableDatabase
 
@@ -37,6 +39,8 @@ class MainActivity : AppCompatActivity() {
         get_Notes()
         val adapter = NotessAdapter(notessList)
         notesRecyclerView.adapter = adapter
+
+
 
         add_button.setOnClickListener {
             val db = dbHelper.writableDatabase
@@ -51,16 +55,13 @@ class MainActivity : AppCompatActivity() {
             adapter.notifyDataSetChanged()
         }
 
-//        notessList.add(Notes("a","123"))
-//        val adapter = NotessAdapter(notessList)
-//        notesRecyclerView.adapter = adapter
-
-        val bottom_navigation: BottomNavigationView = findViewById(R.id.navigation)
         bottom_navigation.setOnItemReselectedListener {item ->
             when(item.itemId){
-                R.id.delete -> {
-                    Log.d("testsss", "onNavigationItemSelected: ")
-                }
+            }
+        }
+
+        top_navigation.setOnItemReselectedListener {item ->
+            when(item.itemId){
             }
         }
     }
@@ -75,8 +76,6 @@ class MainActivity : AppCompatActivity() {
                 val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
                 val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
                 notessList.add(Notes(title,content))
-//                Log.d("MainActivity", "book name is $title")
-//                Log.d("MainActivity", "book author is $content")
             } while (cursor.moveToNext())
         }
         cursor.close()
