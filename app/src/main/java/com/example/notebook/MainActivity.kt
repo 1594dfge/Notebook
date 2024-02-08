@@ -1,7 +1,8 @@
 package com.example.notebook
 
+import android.app.Activity
 import android.content.ContentValues
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,16 +10,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
+
 class MainActivity : AppCompatActivity() {
 
     private var notessList = ArrayList<Notes>()
     val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
+
+    private val TAG = "testsss"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +40,7 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(toolbar)
 
-        dbHelper.writableDatabase
+        val db = dbHelper.writableDatabase
 
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
@@ -42,17 +50,28 @@ class MainActivity : AppCompatActivity() {
 
 
 
-        add_button.setOnClickListener {
-            val db = dbHelper.writableDatabase
-            val values1 = ContentValues().apply {
-                // 開始組裝第一條數據
-                put("title", "abc")
-                put("content", "123")
-            }
-            db.insert("Notes", null, values1) // 插入第一条数据
+        val notesactivityLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult(), ActivityResultCallback<ActivityResult>(){item ->
+                if(item.resultCode == Activity.RESULT_OK){
+                    Log.d(TAG, "RESULT_OK")
+                    val title = item.data?.getStringExtra("title")
+                    val content = item.data?.getStringExtra("content")
 
-            notessList.add(Notes("abc","123"))
-            adapter.notifyDataSetChanged()
+                    val values1 = ContentValues().apply {
+                        put("title", title)
+                        put("content", content)
+                    }
+                    db.insert("Notes", null, values1)
+
+                    notessList.add(Notes(title,content))
+                    adapter.notifyDataSetChanged()
+                }
+            }
+        )
+
+        add_button.setOnClickListener {
+            val intent = Intent(this, NotesActivity::class.java)
+            notesactivityLauncher.launch(intent);
         }
 
         bottom_navigation.setOnItemReselectedListener {item ->
@@ -93,7 +112,7 @@ class MainActivity : AppCompatActivity() {
             holder.itemView.setOnClickListener {
                 val notes = notessList[holder.adapterPosition]
                 //NotesContentActivity.actionStart(parent.context, news.title, news.content);
-                Toast.makeText(parent.context,"test",Toast.LENGTH_SHORT).show()
+                Toast.makeText(parent.context,notes.content,Toast.LENGTH_SHORT).show()
             }
             return holder
         }
