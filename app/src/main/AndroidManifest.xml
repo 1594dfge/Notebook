@@ -13,6 +13,7 @@
         tools:targetApi="31">
         <activity
             android:name=".NotesActivity"
+            android:windowSoftInputMode="adjustResize|stateAlwaysVisible"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

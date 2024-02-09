@@ -1,12 +1,15 @@
 package com.example.notebook
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
 
@@ -21,6 +24,7 @@ class NotesActivity : AppCompatActivity() {
     lateinit var content: EditText
     lateinit var topToolbar: Toolbar
     lateinit var bottomToolber: Toolbar
+    lateinit var imm : InputMethodManager
 
     private val TAG="testsss"
 
@@ -34,12 +38,23 @@ class NotesActivity : AppCompatActivity() {
         topToolbar = findViewById(R.id.notesTopToolbar)
         bottomToolber = findViewById(R.id.notesBottomToolbar)
 
+        imm= getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+
+        //讓content(EditText)獲得焦點 鍵盤跳出
+        content.requestFocus()
+
         titleList.add("")
         contentList.add("")
         titleString = title.text.toString()
         contentString = content.text.toString()
 
         topToolbar.setNavigationIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_arrow_back_24))
+
+        title.setOnFocusChangeListener { v, hasFocus ->
+            if(title.isFocused){
+                bottomToolber.setVisibility(View.GONE)
+            }
+        }
 
         title.addTextChangedListener(object: TextWatcher{
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -53,6 +68,15 @@ class NotesActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {
             }
         })
+
+        content.setOnFocusChangeListener { v, hasFocus ->
+            if(content.isFocused){
+                bottomToolber.setVisibility(View.VISIBLE)
+                bottomToolber.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_check_24))
+            } else{
+                bottomToolber.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_create_24))
+            }
+        }
 
         content.addTextChangedListener(object: TextWatcher{
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -68,21 +92,36 @@ class NotesActivity : AppCompatActivity() {
         })
 
         topToolbar.setNavigationOnClickListener {
-            finish()
+            if(title.isFocused||content.isFocused){
+                title.clearFocus()
+                content.clearFocus()
+                imm.hideSoftInputFromWindow(content.windowToken,0)
+            }else{
+                finish()
+            }
         }
 
         bottomToolber.setOnMenuItemClickListener { item ->
             when(item.itemId){
                 R.id.edit_submit -> {
-                    if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]){
+                    if(title.isFocused||content.isFocused){
+                        title.clearFocus()
+                        content.clearFocus()
+                        imm.hideSoftInputFromWindow(content.windowToken,0)
 
+                        if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]){
+
+                        }else{
+                            intent.putExtra("title", title.text.toString())
+                            intent.putExtra("content", content.text.toString())
+                            setResult(RESULT_OK,intent)
+                            Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
+                            titleString = title.text.toString()
+                            contentString = content.text.toString()
+                        }
                     }else{
-                        intent.putExtra("title", title.text.toString())
-                        intent.putExtra("content", content.text.toString())
-                        setResult(RESULT_OK,intent)
-                        Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
-                        titleString = title.text.toString()
-                        contentString = content.text.toString()
+                        content.requestFocus()
+                        imm.showSoftInput(content,0)
                     }
                 }
             }
