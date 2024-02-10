@@ -11,7 +11,8 @@ class NotesDatabaseHelper(val context: Context, name: String, version: Int):SQLi
             " id integer primary key autoincrement," +
             "uuid text," +
             "title text," +
-            "content text)"
+            "content text," +
+            "isChecked boolean default 0)"
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(createNotes)

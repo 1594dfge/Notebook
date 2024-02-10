@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
@@ -117,13 +116,10 @@ class NotesActivity : AppCompatActivity() {
                         }else{
                             intent.putExtra("title", title.text.toString())
                             intent.putExtra("content", content.text.toString())
-                            Log.d(TAG, ""+uuid)
                             if(uuid == ""){
-                                Log.d(TAG, "uuid == \"\"$uuid")
                                 intent.putExtra("uuid", UUID.randomUUID().toString())
                                 setResult(1000000000,intent)
                             }else{
-                                Log.d(TAG, ""+uuid)
                                 intent.putExtra("else uuid", uuid)
                                 setResult(1000000001,intent)
                             }
@@ -156,13 +152,10 @@ class NotesActivity : AppCompatActivity() {
         }else{
             intent.putExtra("title", title.text.toString())
             intent.putExtra("content", content.text.toString())
-            Log.d(TAG, ""+uuid)
             if(uuid == ""){
-                Log.d(TAG, "uuid == \"\"$uuid")
                 intent.putExtra("uuid", UUID.randomUUID().toString())
                 setResult(1000000000,intent)
             }else{
-                Log.d(TAG, ""+uuid)
                 intent.putExtra("else uuid", uuid)
                 setResult(1000000001,intent)
             }
