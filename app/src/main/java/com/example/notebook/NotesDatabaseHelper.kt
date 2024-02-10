@@ -9,6 +9,7 @@ class NotesDatabaseHelper(val context: Context, name: String, version: Int):SQLi
 
     private val createNotes = "create table Notes (" +
             " id integer primary key autoincrement," +
+            "uuid text," +
             "title text," +
             "content text)"
 

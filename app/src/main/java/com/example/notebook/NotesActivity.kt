@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
+import java.util.UUID
 
 class NotesActivity : AppCompatActivity() {
 
@@ -20,6 +21,7 @@ class NotesActivity : AppCompatActivity() {
     val contentList = ArrayList<String>()
     lateinit var titleString: String
     lateinit var contentString: String
+    lateinit var uuid: String
     lateinit var title: EditText
     lateinit var content: EditText
     lateinit var topToolbar: Toolbar
@@ -31,20 +33,23 @@ class NotesActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_notes)
-        Log.d(TAG, "onCreate: ")
 
         title = findViewById(R.id.title)
         content = findViewById(R.id.content)
         topToolbar = findViewById(R.id.notesTopToolbar)
         bottomToolber = findViewById(R.id.notesBottomToolbar)
 
+        uuid = intent.getStringExtra("uuid").toString()
+        title.setText(intent.getStringExtra("title"))
+        content.setText(intent.getStringExtra("content"))
+
         imm= getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
         //讓content(EditText)獲得焦點 鍵盤跳出
         content.requestFocus()
 
-        titleList.add("")
-        contentList.add("")
+        titleList.add(title.text.toString())
+        contentList.add(content.text.toString())
         titleString = title.text.toString()
         contentString = content.text.toString()
 
@@ -62,7 +67,6 @@ class NotesActivity : AppCompatActivity() {
 
             override fun onTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
                 titleList.add(s.toString())
-                Log.d(TAG, "onTextChanged: "+ s.toString())
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -84,7 +88,6 @@ class NotesActivity : AppCompatActivity() {
 
             override fun onTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
                 contentList.add(s.toString())
-                Log.d(TAG, "onTextChanged: "+ s.toString())
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -114,7 +117,16 @@ class NotesActivity : AppCompatActivity() {
                         }else{
                             intent.putExtra("title", title.text.toString())
                             intent.putExtra("content", content.text.toString())
-                            setResult(RESULT_OK,intent)
+                            Log.d(TAG, ""+uuid)
+                            if(uuid == ""){
+                                Log.d(TAG, "uuid == \"\"$uuid")
+                                intent.putExtra("uuid", UUID.randomUUID().toString())
+                                setResult(1000000000,intent)
+                            }else{
+                                Log.d(TAG, ""+uuid)
+                                intent.putExtra("else uuid", uuid)
+                                setResult(1000000001,intent)
+                            }
                             Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
                             titleString = title.text.toString()
                             contentString = content.text.toString()
@@ -131,47 +143,47 @@ class NotesActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        Log.d(TAG, "onStart: ")
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "onResume: ")
     }
 
     override fun finish() {
         // 儲存
         if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]){
-            Log.d(TAG, "onPause: if")
+
         }else{
-            Log.d(TAG, "onPause: else start")
             intent.putExtra("title", title.text.toString())
             intent.putExtra("content", content.text.toString())
-            setResult(RESULT_OK,intent)
+            Log.d(TAG, ""+uuid)
+            if(uuid == ""){
+                Log.d(TAG, "uuid == \"\"$uuid")
+                intent.putExtra("uuid", UUID.randomUUID().toString())
+                setResult(1000000000,intent)
+            }else{
+                Log.d(TAG, ""+uuid)
+                intent.putExtra("else uuid", uuid)
+                setResult(1000000001,intent)
+            }
             Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
             titleString = title.text.toString()
             contentString = content.text.toString()
-            //Thread.sleep(1000)
-            Log.d(TAG, "onPause: else end")
         }
 
         super.finish()
-        Log.d(TAG, "finish: ")
     }
 
     override fun onPause() {
         super.onPause()
-        Log.d(TAG, "onPause: ")
     }
 
     override fun onStop() {
         super.onStop()
-        Log.d(TAG, "onStop: ")
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(TAG, "onDestroy: ")
 
         //List clear
         titleList.clear()
