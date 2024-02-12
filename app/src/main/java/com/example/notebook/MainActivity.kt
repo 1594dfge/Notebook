@@ -1,6 +1,5 @@
 package com.example.notebook
 
-import android.content.ContentValues
 import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
@@ -10,8 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
-import android.widget.CompoundButton
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
@@ -22,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlin.properties.Delegates
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,9 +32,9 @@ class MainActivity : AppCompatActivity() {
     lateinit var pagenavigation :BottomNavigationView
     lateinit var delete_button: Button
 
-    private var notesList = ArrayList<Notes>()
+    var notesList = ArrayList<Notes>()
     var uuidList = ArrayList<String>()
-    var notesListPosition : Int = 0 //更新資料
+    var notesListPosition by Delegates.notNull<Int>() //更新資料
     val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
     lateinit var db : SQLiteDatabase
 
@@ -43,12 +43,14 @@ class MainActivity : AppCompatActivity() {
 
     var inDeletionMode = false
     var checkBoxList = ArrayList<Int>()
+    var checkBoxStateList = ArrayList<checkBoxState>()
 
     private val TAG = "testsss"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        Log.d(TAG, "MainActivity_onCreate: ")
 
         toolbar = findViewById(R.id.toolbar)
         top_toolbar = findViewById(R.id.topToolbar)
@@ -66,42 +68,30 @@ class MainActivity : AppCompatActivity() {
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
         get_Notes()
-        val adapter = NotessAdapter(notesList)
+        val adapter = NotessAdapter(notesList, checkBoxStateList)
         notesRecyclerView.adapter = adapter
 
-
-
         notesactivityLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult(), ActivityResultCallback<ActivityResult>(){item ->
+            ActivityResultContracts.StartActivityForResult(), ActivityResultCallback<ActivityResult>(){ item ->
+                Log.d(TAG, "onCreate: resultCode"+item.resultCode)
                 if(item.resultCode == 1000000000){
-                    //create
                     val uuid = item.data?.getStringExtra("uuid")
                     val title = item.data?.getStringExtra("title")
                     val content = item.data?.getStringExtra("content")
 
-                    val values1 = ContentValues().apply {
-                        put("uuid", uuid)
-                        put("title", title)
-                        put("content", content)
+                    if(uuidList.contains(uuid)){
+                        //update
+                        notesList.set(notesListPosition, Notes(uuid,title,content))
+                        adapter.notifyDataSetChanged()
+                    }else{
+                        //create
+                        notesList.add(Notes(uuid,title,content))
+                        uuidList.add(uuid.toString())
+                        checkBoxStateList.add(checkBoxState(false))
+                        adapter.notifyDataSetChanged()
                     }
-                    db.insert("Notes", null, values1)
-
-                    notesList.add(Notes(uuid,title,content))
-                    uuidList.add(uuid.toString())
-                    adapter.notifyDataSetChanged()
-                }else if(item.resultCode == 1000000001){
-                    //update
-                    val uuid = item.data?.getStringExtra("uuid")
-                    val title = item.data?.getStringExtra("title")
-                    val content = item.data?.getStringExtra("content")
-
-                    val values1 = ContentValues().apply {
-                        put("title", title)
-                        put("content", content)
-                    }
-                    db.update("Notes", values1, "uuid = ?", arrayOf(uuid))
-
-                    notesList.set(notesListPosition, Notes(uuid,title,content))
+                }else if(item.resultCode == 0){
+                    get_Notes()
                     adapter.notifyDataSetChanged()
                 }
             }
@@ -127,7 +117,6 @@ class MainActivity : AppCompatActivity() {
 
             var dArray = arrayOfNulls<String>(1)
             for(delete in deleteList){
-                Log.d(TAG, "delete"+delete)
                 dArray[0] = delete
                 db.delete("Notes", "uuid = ?", dArray)
             }
@@ -145,25 +134,50 @@ class MainActivity : AppCompatActivity() {
 
             adapter.notifyDataSetChanged()
         }
+
+        onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
+            //返回鍵
+            override fun handleOnBackPressed() {
+                if(inDeletionMode){
+                    checkBoxList.clear()
+
+                    get_Notes()
+
+                    inDeletionMode = false
+                    toolbar.setVisibility(View.VISIBLE)
+                    top_toolbar.setVisibility(View.GONE)
+                    add_button.setVisibility(View.VISIBLE)
+                    pagenavigation.setVisibility(View.VISIBLE)
+                    delete_button.setVisibility(View.GONE)
+
+                    adapter.notifyDataSetChanged()
+                }else{
+                    finish()
+                }
+            }
+        })
     }
 
     fun get_Notes(){
         notesList.clear()
         uuidList.clear()
+        checkBoxStateList.clear()
         val cursor = db.query("Notes", null, null, null, null, null, null)
         if (cursor.moveToFirst()) {
             do {
                 val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
                 val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
                 val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
+                val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
                 notesList.add(Notes(uuid,title,content))
                 uuidList.add(uuid)
+                checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
         }
         cursor.close()
     }
 
-    inner class NotessAdapter(val notesList: List<Notes>) : RecyclerView.Adapter<NotessAdapter.ViewHolder>() {
+    inner class NotessAdapter(val notesList: List<Notes>, val checkBoxStateList: ArrayList<checkBoxState>) : RecyclerView.Adapter<NotessAdapter.ViewHolder>() {
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val notesTitle: TextView = view.findViewById(R.id.notesTitle)
             val notesCheckBox: CheckBox = view.findViewById(R.id.notesCheckBox)
@@ -182,9 +196,16 @@ class MainActivity : AppCompatActivity() {
                     intentNotesActivity.putExtra("content", notes.content)
                     notesactivityLauncher.launch(intentNotesActivity)
                 }else{
-                    if(holder.notesCheckBox.isChecked){
+                    val pos : Int = holder.notesCheckBox.getTag() as Int
+                    Log.d(TAG, "onClick: pos2"+pos)
+
+                    if (checkBoxStateList.get(pos).get_Checked()) {
+                        checkBoxStateList.get(pos).set_Checked(false);
+                        checkBoxList.remove(holder.absoluteAdapterPosition)
                         holder.notesCheckBox.setChecked(false)
-                    }else{
+                    } else {
+                        checkBoxStateList.get(pos).set_Checked(true);
+                        checkBoxList.add(holder.absoluteAdapterPosition)
                         holder.notesCheckBox.setChecked(true)
                     }
                 }
@@ -213,19 +234,26 @@ class MainActivity : AppCompatActivity() {
 
             if(inDeletionMode){
                 holder.notesCheckBox.setVisibility(View.VISIBLE)
-                holder.notesCheckBox.setOnCheckedChangeListener(object : CompoundButton.OnCheckedChangeListener{
-                    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
-                        if(isChecked){
-                            checkBoxList.add(holder.absoluteAdapterPosition)
-                            Log.d(TAG, "onCheckedChanged: "+checkBoxList)
-                        }else{
+
+                holder.notesCheckBox.setChecked(checkBoxStateList.get(position).get_Checked()) //RecyclerView+checkBox 上下滑動實(好像有bug) checkBox點選打勾圖示會亂跳
+                holder.notesCheckBox.setTag(position)
+
+                holder.notesCheckBox.setOnClickListener(object : View.OnClickListener {
+                    override fun onClick(v: View) {
+                        val pos : Int = holder.notesCheckBox.getTag() as Int //pos == position
+                        Log.d(TAG, "onClick: pos1"+pos)
+
+                        if (checkBoxStateList.get(pos).get_Checked()) {
+                            checkBoxStateList.get(pos).set_Checked(false);
                             checkBoxList.remove(holder.absoluteAdapterPosition)
-                            Log.d(TAG, "onCheckedChanged: "+checkBoxList)
+                        } else {
+                            checkBoxStateList.get(pos).set_Checked(true);
+                            checkBoxList.add(holder.absoluteAdapterPosition)
                         }
                     }
                 })
             }else{
-                holder.notesCheckBox.setChecked(false) //delete後checkBox 勾勾 會亂跳 所以全部取消
+                holder.notesCheckBox.setChecked(false) //RecyclerView+checkBox(好像有bug) checkBox點選打勾圖示會亂跳 所以全部取消
                 holder.notesCheckBox.setVisibility(View.GONE)
             }
         }
@@ -233,11 +261,33 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount() = notesList.size
     }
 
+    override fun onStart() {
+        super.onStart()
+        Log.d(TAG, "MainActivity_onStart: ")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "MainActivity_onResume: ")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d(TAG, "MainActivity_onPause: ")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d(TAG, "MainActivity_onStop: ")
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "MainActivity_onDestroy: ")
+
         notesList.clear()
         uuidList.clear()
         checkBoxList.clear()
+        checkBoxStateList.clear()
     }
-
 }
