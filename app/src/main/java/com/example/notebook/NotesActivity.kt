@@ -10,10 +10,12 @@ import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
+import java.time.LocalDateTime
 import java.util.UUID
 
 class NotesActivity : AppCompatActivity() {
@@ -24,9 +26,11 @@ class NotesActivity : AppCompatActivity() {
     lateinit var titleString: String
     lateinit var contentString: String
     lateinit var uuid: String
+    lateinit var updateDate: String
 
     lateinit var title: EditText
     lateinit var content: EditText
+    lateinit var date: TextView
     lateinit var topToolbar: Toolbar
     lateinit var bottomToolber: Toolbar
     //控制鍵盤顯示(顯示 不顯示)
@@ -44,6 +48,7 @@ class NotesActivity : AppCompatActivity() {
 
         title = findViewById(R.id.title)
         content = findViewById(R.id.content)
+        date = findViewById(R.id.date)
         topToolbar = findViewById(R.id.notesTopToolbar)
         bottomToolber = findViewById(R.id.notesBottomToolbar)
 
@@ -53,6 +58,9 @@ class NotesActivity : AppCompatActivity() {
         uuid = intent.getStringExtra("uuid").toString()
         title.setText(intent.getStringExtra("title"))
         content.setText(intent.getStringExtra("content"))
+        date.setText("最後編輯:"+intent.getStringExtra("updateDate"))
+
+        updateDate = LocalDateTime.now().toString()
 
         imm= getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
@@ -143,6 +151,8 @@ class NotesActivity : AppCompatActivity() {
         }else{
             intent.putExtra("title", title.text.toString())
             intent.putExtra("content", content.text.toString())
+            intent.putExtra("updateDate", updateDate)
+
             if(uuid == ""){
                 Log.d(TAG, "onCreate: create")
                 uuid = UUID.randomUUID().toString()
@@ -151,6 +161,7 @@ class NotesActivity : AppCompatActivity() {
                     put("uuid", uuid)
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    put("updateDate", updateDate)
                 }
                 db.insert("Notes", null, values1)
             }else{
@@ -159,6 +170,7 @@ class NotesActivity : AppCompatActivity() {
                 val values1 = ContentValues().apply {
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    put("updateDate", updateDate)
                 }
                 db.update("Notes", values1, "uuid = ?", arrayOf(uuid))
             }
@@ -199,6 +211,7 @@ class NotesActivity : AppCompatActivity() {
                     put("uuid", uuid)
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    put("updateDate", updateDate)
                 }
                 db.insert("Notes", null, values1)
             }else{
@@ -207,6 +220,7 @@ class NotesActivity : AppCompatActivity() {
                 val values1 = ContentValues().apply {
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    put("updateDate", updateDate)
                 }
                 db.update("Notes", values1, "uuid = ?", arrayOf(uuid))
             }

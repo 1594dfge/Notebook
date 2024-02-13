@@ -12,6 +12,8 @@ class NotesDatabaseHelper(val context: Context, name: String, version: Int):SQLi
             "uuid text," +
             "title text," +
             "content text," +
+            "createDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"+
+            "updateDate text,"+
             "isChecked boolean default 0)"
 
     override fun onCreate(db: SQLiteDatabase) {

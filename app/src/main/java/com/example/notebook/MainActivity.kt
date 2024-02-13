@@ -21,6 +21,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.properties.Delegates
 
 class MainActivity : AppCompatActivity() {
@@ -78,14 +80,15 @@ class MainActivity : AppCompatActivity() {
                     val uuid = item.data?.getStringExtra("uuid")
                     val title = item.data?.getStringExtra("title")
                     val content = item.data?.getStringExtra("content")
+                    val updateDate = item.data?.getStringExtra("updateDate")
 
                     if(uuidList.contains(uuid)){
                         //update
-                        notesList.set(notesListPosition, Notes(uuid,title,content))
+                        notesList.set(notesListPosition, Notes(uuid,title,content,LocalDateTime.parse(updateDate)))
                         adapter.notifyDataSetChanged()
                     }else{
                         //create
-                        notesList.add(Notes(uuid,title,content))
+                        notesList.add(Notes(uuid,title,content,LocalDateTime.parse(updateDate)))
                         uuidList.add(uuid.toString())
                         checkBoxStateList.add(checkBoxState(false))
                         adapter.notifyDataSetChanged()
@@ -101,6 +104,7 @@ class MainActivity : AppCompatActivity() {
             intentNotesActivity.putExtra("uuid", "")
             intentNotesActivity.putExtra("title","")
             intentNotesActivity.putExtra("content","")
+            intentNotesActivity.putExtra("updateDate","")
             notesactivityLauncher.launch(intentNotesActivity)
         }
 
@@ -168,8 +172,9 @@ class MainActivity : AppCompatActivity() {
                 val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
                 val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
                 val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
+                val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
-                notesList.add(Notes(uuid,title,content))
+                notesList.add(Notes(uuid,title,content,LocalDateTime.parse(updateDate)))
                 uuidList.add(uuid)
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
@@ -180,6 +185,8 @@ class MainActivity : AppCompatActivity() {
     inner class NotessAdapter(val notesList: List<Notes>, val checkBoxStateList: ArrayList<checkBoxState>) : RecyclerView.Adapter<NotessAdapter.ViewHolder>() {
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val notesTitle: TextView = view.findViewById(R.id.notesTitle)
+            val notesDate: TextView = view.findViewById(R.id.notesDate)
+            val notesContent: TextView = view.findViewById(R.id.notesContent)
             val notesCheckBox: CheckBox = view.findViewById(R.id.notesCheckBox)
         }
 
@@ -194,6 +201,7 @@ class MainActivity : AppCompatActivity() {
                     intentNotesActivity.putExtra("uuid", notes.uuid)
                     intentNotesActivity.putExtra("title", notes.title)
                     intentNotesActivity.putExtra("content", notes.content)
+                    intentNotesActivity.putExtra("updateDate",notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
                     notesactivityLauncher.launch(intentNotesActivity)
                 }else{
                     val pos : Int = holder.notesCheckBox.getTag() as Int
@@ -229,8 +237,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val news = notesList[position]
-            holder.notesTitle.text = news.title
+            val notes = notesList[position]
+            holder.notesTitle.text = notes.title
+            holder.notesDate.text = notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            holder.notesContent.text = notes.content
 
             if(inDeletionMode){
                 holder.notesCheckBox.setVisibility(View.VISIBLE)
