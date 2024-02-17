@@ -4,12 +4,11 @@ import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCallback
@@ -25,18 +24,18 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.properties.Delegates
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener {
 
-    lateinit var toolbar: Toolbar
-    lateinit var top_toolbar: Toolbar
+    lateinit var toolbar : Toolbar
+    lateinit var top_toolbar : Toolbar
     lateinit var notesRecyclerView : RecyclerView
-    lateinit var add_button: FloatingActionButton
-    lateinit var pagenavigation :BottomNavigationView
-    lateinit var delete_button: Button
+    lateinit var add_button : FloatingActionButton
+    lateinit var pagenavigation : BottomNavigationView
+    lateinit var delete_button : Button
 
     var notesList = ArrayList<Notes>()
     var uuidList = ArrayList<String>()
-    var notesListPosition by Delegates.notNull<Int>() //更新資料
+    var notesListPosition by Delegates.notNull<Int>() //更新資料 旋轉螢幕 切換深淺模式 會出現BUG 所以要儲存
     val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
     lateinit var db : SQLiteDatabase
 
@@ -70,7 +69,7 @@ class MainActivity : AppCompatActivity() {
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
         get_Notes()
-        val adapter = NotessAdapter(notesList, checkBoxStateList)
+        val adapter = NotesAdapter(notesList, checkBoxStateList)
         notesRecyclerView.adapter = adapter
 
         notesactivityLauncher = registerForActivityResult(
@@ -80,15 +79,17 @@ class MainActivity : AppCompatActivity() {
                     val uuid = item.data?.getStringExtra("uuid")
                     val title = item.data?.getStringExtra("title")
                     val content = item.data?.getStringExtra("content")
+                    val color = item.data?.getStringExtra("color")
+                    val createDate = item.data?.getStringExtra("createDate")
                     val updateDate = item.data?.getStringExtra("updateDate")
 
                     if(uuidList.contains(uuid)){
                         //update
-                        notesList.set(notesListPosition, Notes(uuid,title,content,LocalDateTime.parse(updateDate)))
+                        notesList.set(notesListPosition, Notes(uuid,title,content,color,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                         adapter.notifyDataSetChanged()
                     }else{
                         //create
-                        notesList.add(Notes(uuid,title,content,LocalDateTime.parse(updateDate)))
+                        notesList.add(Notes(uuid,title,content,color,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                         uuidList.add(uuid.toString())
                         checkBoxStateList.add(checkBoxState(false))
                         adapter.notifyDataSetChanged()
@@ -104,13 +105,10 @@ class MainActivity : AppCompatActivity() {
             intentNotesActivity.putExtra("uuid", "")
             intentNotesActivity.putExtra("title","")
             intentNotesActivity.putExtra("content","")
+            intentNotesActivity.putExtra("color","") //預設顏色
+            intentNotesActivity.putExtra("createDate","")
             intentNotesActivity.putExtra("updateDate","")
             notesactivityLauncher.launch(intentNotesActivity)
-        }
-
-        pagenavigation.setOnItemReselectedListener {item ->
-            when(item.itemId){
-            }
         }
 
         delete_button.setOnClickListener {
@@ -162,6 +160,25 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.mainactivity_top_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            R.id.select_color ->{
+                val bottomSheetFragment = SelectColorFragment(this)
+                bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    override fun sendValue(value: String) {
+        Log.d(TAG, "sendValue: "+value)
+    }
+
     fun get_Notes(){
         notesList.clear()
         uuidList.clear()
@@ -172,9 +189,11 @@ class MainActivity : AppCompatActivity() {
                 val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
                 val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
                 val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
+                val color = cursor.getString(cursor.getColumnIndexOrThrow("color"))
+                val createDate = cursor.getString(cursor.getColumnIndexOrThrow("createDate"))
                 val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
-                notesList.add(Notes(uuid,title,content,LocalDateTime.parse(updateDate)))
+                notesList.add(Notes(uuid,title,content,color,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                 uuidList.add(uuid)
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
@@ -182,7 +201,7 @@ class MainActivity : AppCompatActivity() {
         cursor.close()
     }
 
-    inner class NotessAdapter(val notesList: List<Notes>, val checkBoxStateList: ArrayList<checkBoxState>) : RecyclerView.Adapter<NotessAdapter.ViewHolder>() {
+    inner class NotesAdapter(val notesList: List<Notes>, val checkBoxStateList: ArrayList<checkBoxState>) : RecyclerView.Adapter<NotesAdapter.ViewHolder>() {
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val notesTitle: TextView = view.findViewById(R.id.notesTitle)
             val notesDate: TextView = view.findViewById(R.id.notesDate)
@@ -201,6 +220,8 @@ class MainActivity : AppCompatActivity() {
                     intentNotesActivity.putExtra("uuid", notes.uuid)
                     intentNotesActivity.putExtra("title", notes.title)
                     intentNotesActivity.putExtra("content", notes.content)
+                    intentNotesActivity.putExtra("color", notes.color)
+                    intentNotesActivity.putExtra("createDate",notes.createDate.toString())
                     intentNotesActivity.putExtra("updateDate",notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
                     notesactivityLauncher.launch(intentNotesActivity)
                 }else{
@@ -300,4 +321,5 @@ class MainActivity : AppCompatActivity() {
         checkBoxList.clear()
         checkBoxStateList.clear()
     }
+
 }

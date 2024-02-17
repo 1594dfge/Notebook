@@ -12,7 +12,8 @@ class NotesDatabaseHelper(val context: Context, name: String, version: Int):SQLi
             "uuid text," +
             "title text," +
             "content text," +
-            "createDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"+
+            "color text," +
+            "createDate text,"+
             "updateDate text,"+
             "isChecked boolean default 0)"
 

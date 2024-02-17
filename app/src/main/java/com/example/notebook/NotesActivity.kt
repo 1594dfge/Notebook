@@ -23,16 +23,17 @@ class NotesActivity : AppCompatActivity() {
     //為什麼使用List，是因為要實現 上一筆內容 下一筆內容 的功能
     var titleList = ArrayList<String>()
     val contentList = ArrayList<String>()
-    lateinit var titleString: String
-    lateinit var contentString: String
-    lateinit var uuid: String
-    lateinit var updateDate: String
+    lateinit var titleString : String
+    lateinit var contentString : String
+    lateinit var uuid : String
+    lateinit var createDate : String
+    lateinit var updateDate : String
 
-    lateinit var title: EditText
-    lateinit var content: EditText
-    lateinit var date: TextView
-    lateinit var topToolbar: Toolbar
-    lateinit var bottomToolber: Toolbar
+    lateinit var title : EditText
+    lateinit var content : EditText
+    lateinit var date : TextView
+    lateinit var topToolbar : Toolbar
+    lateinit var bottomToolber : Toolbar
     //控制鍵盤顯示(顯示 不顯示)
     lateinit var imm : InputMethodManager
 
@@ -58,8 +59,8 @@ class NotesActivity : AppCompatActivity() {
         uuid = intent.getStringExtra("uuid").toString()
         title.setText(intent.getStringExtra("title"))
         content.setText(intent.getStringExtra("content"))
+        createDate = intent.getStringExtra("createDate").toString()
         date.setText("最後編輯:"+intent.getStringExtra("updateDate"))
-
         updateDate = LocalDateTime.now().toString()
 
         imm= getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -157,10 +158,13 @@ class NotesActivity : AppCompatActivity() {
                 Log.d(TAG, "onCreate: create")
                 uuid = UUID.randomUUID().toString()
 
+                createDate = LocalDateTime.now().toString()
+
                 val values1 = ContentValues().apply {
                     put("uuid", uuid)
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    put("createDate", createDate)
                     put("updateDate", updateDate)
                 }
                 db.insert("Notes", null, values1)
@@ -175,6 +179,7 @@ class NotesActivity : AppCompatActivity() {
                 db.update("Notes", values1, "uuid = ?", arrayOf(uuid))
             }
             intent.putExtra("uuid", uuid)
+            intent.putExtra("createDate", createDate)
             setResult(1000000000,intent)
             Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
             titleString = title.text.toString()
@@ -207,10 +212,13 @@ class NotesActivity : AppCompatActivity() {
                 Log.d(TAG, "onCreate: create")
                 uuid = UUID.randomUUID().toString()
 
+                createDate = LocalDateTime.now().toString()
+
                 val values1 = ContentValues().apply {
                     put("uuid", uuid)
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    put("createDate", createDate)
                     put("updateDate", updateDate)
                 }
                 db.insert("Notes", null, values1)
