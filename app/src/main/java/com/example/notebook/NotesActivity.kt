@@ -164,6 +164,7 @@ class NotesActivity : AppCompatActivity() {
                     put("uuid", uuid)
                     put("title", title.text.toString())
                     put("content", content.text.toString())
+                    //put("colors", )
                     put("createDate", createDate)
                     put("updateDate", updateDate)
                 }

@@ -31,18 +31,18 @@ class SimpleItemTouchHelperCallback(adapter: ItemTouchHelperAdapter): ItemTouchH
 
     override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
         super.onSelectedChanged(viewHolder, actionState)
-        if(actionState != ItemTouchHelper.ACTION_STATE_IDLE){
-            if (viewHolder != null) {
-                mAdapter.onItemSelect(viewHolder)
-            }
-        }
+//        if(actionState != ItemTouchHelper.ACTION_STATE_IDLE){
+//            if (viewHolder != null) {
+//                mAdapter.onItemSelect(viewHolder)
+//            }
+//        }
     }
 
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
-        if(!recyclerView.isComputingLayout){
-            mAdapter.onItemClear(viewHolder)
-        }
+//        if(!recyclerView.isComputingLayout){
+//            mAdapter.onItemClear(viewHolder)
+//        }
     }
 
 }

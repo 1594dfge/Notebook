@@ -38,12 +38,19 @@
 
     </LinearLayout>
 
-    <RadioGroup
+    <LinearLayout
         android:id="@+id/colorRadioGroup"
         android:layout_width="match_parent"
         android:layout_height="500dp"
         android:orientation="vertical"
         android:visibility="visible" >
+
+        <RadioButton
+            android:id="@+id/radioButton0"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="全選"
+            android:textSize="30sp" />
 
         <RadioButton
             android:id="@+id/radioButton1"
@@ -69,7 +76,7 @@
             android:layout_height="wrap_content"
             android:textSize="30sp" />
 
-    </RadioGroup>
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/colorsRecyclerView"

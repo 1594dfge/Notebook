@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             intentNotesActivity.putExtra("uuid", "")
             intentNotesActivity.putExtra("title","")
             intentNotesActivity.putExtra("content","")
-            intentNotesActivity.putExtra("color","") //預設顏色
+            intentNotesActivity.putExtra("colors","") //預設顏色
             intentNotesActivity.putExtra("createDate","")
             intentNotesActivity.putExtra("updateDate","")
             notesactivityLauncher.launch(intentNotesActivity)
@@ -189,11 +189,11 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
                 val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
                 val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
-                val color = cursor.getString(cursor.getColumnIndexOrThrow("color"))
+                val colors = cursor.getString(cursor.getColumnIndexOrThrow("color"))
                 val createDate = cursor.getString(cursor.getColumnIndexOrThrow("createDate"))
                 val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
-                notesList.add(Notes(uuid,title,content,color,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                notesList.add(Notes(uuid,title,content,colors,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                 uuidList.add(uuid)
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())

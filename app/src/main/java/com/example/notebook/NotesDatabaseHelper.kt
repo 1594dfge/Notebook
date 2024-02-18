@@ -7,15 +7,15 @@ import android.widget.Toast
 
 class NotesDatabaseHelper(val context: Context, name: String, version: Int):SQLiteOpenHelper(context, name, null, version) {
 
-    private val createNotes = "create table Notes (" +
-            " id integer primary key autoincrement," +
-            "uuid text," +
-            "title text," +
-            "content text," +
-            "color text," +
-            "createDate text,"+
-            "updateDate text,"+
-            "isChecked boolean default 0)"
+    private val createNotes = " create table Notes ( " +
+            " id integer primary key autoincrement, " +
+            " uuid text, " +
+            " title text, " +
+            " content text, " +
+            " color text, " +
+            " createDate text, "+
+            " updateDate text, "+
+            " isChecked boolean default 0)"
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(createNotes)
@@ -25,4 +25,5 @@ class NotesDatabaseHelper(val context: Context, name: String, version: Int):SQLi
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
 
     }
+
 }
