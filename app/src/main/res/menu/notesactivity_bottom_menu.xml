@@ -8,5 +8,4 @@
         android:title="edit_submit"
         android:icon="@drawable/baseline_check_24"
         app:showAsAction="always" />
-
 </menu>

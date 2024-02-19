@@ -18,22 +18,27 @@ import java.util.Collections
 
 class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
 
-    lateinit var txv: TextView
+    lateinit var filterTxv: TextView
     lateinit var edit_finish: Button
     lateinit var radioButton0: RadioButton
     lateinit var radioButton1: RadioButton
     lateinit var radioButton2: RadioButton
     lateinit var radioButton3: RadioButton
     lateinit var radioButton4: RadioButton
-    lateinit var colorRadioGroup: LinearLayout //使用RadioGroup會有問題
+    lateinit var colorRadioGroup: LinearLayout //使用RadioGroup會有問題 可能是手動跟自動設定RadioButton造成的錯誤
     lateinit var colorsRecyclerView: RecyclerView
+    lateinit var topLinearLayout: LinearLayout // isActivity == "NotesActivity" 就將 topLinearLayout gone
 
     lateinit var imm : InputMethodManager
 
-    val prefs = context.getSharedPreferences("colors", Context.MODE_PRIVATE)
-    val prefs2 = context.getSharedPreferences("radioButtonChecked", Context.MODE_PRIVATE)
+    val prefsColors = context.getSharedPreferences("colors", Context.MODE_PRIVATE)
+    val prefsRadioButtons = context.getSharedPreferences("radioButtons", Context.MODE_PRIVATE)
     var colorsList = ArrayList<Colors>()
-    var colorDefault = prefs.getString("colorDefault","allcolor")
+    var colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor") //這裡是 選擇呈現甚麼顏色的資料 green、yellow、blue、red、allcolor(呈現所有顏色)
+    var notesUpdateColor = prefsColors.getString("notesUpdateColor","green")
+
+    lateinit var isActivity: String
+    var colorDefault = prefsColors.getString("colorDefault","green")
 
     interface RadioButtonListener{
         fun sendValue(value: String)
@@ -57,7 +62,16 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        txv=view.findViewById(R.id.txv)
+        Log.d("testsss", "context: "+context.toString().split(".")[3].split("@")[0])
+        if(context.toString().split(".")[3].split("@")[0] == "MainActivity"){
+            isActivity = "MainActivity"
+            Log.d("testsss", "context = "+isActivity)
+        }else if(context.toString().split(".")[3].split("@")[0] == "NotesActivity"){
+            isActivity = "NotesActivity"
+            Log.d("testsss", "context = "+isActivity)
+        }
+
+        filterTxv=view.findViewById(R.id.filterTxv)
         edit_finish=view.findViewById(R.id.edit_finish)
         radioButton0=view.findViewById(R.id.radioButton0)
         radioButton1=view.findViewById(R.id.radioButton1)
@@ -65,56 +79,67 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
         radioButton3=view.findViewById(R.id.radioButton3)
         radioButton4=view.findViewById(R.id.radioButton4)
         colorRadioGroup=view.findViewById(R.id.colorRadioGroup)
-        colorsRecyclerView=view.findViewById<RecyclerView>(R.id.colorsRecyclerView)
+        colorsRecyclerView=view.findViewById(R.id.colorsRecyclerView)
+        topLinearLayout=view.findViewById(R.id.topLinearLayout)
 
         imm= context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
-        var draw1 = context?.getDrawable(prefs.getInt("colorDraw1",R.drawable.baseline_circle_green_24))
-        var draw2 = context?.getDrawable(prefs.getInt("colorDraw2",R.drawable.baseline_circle_yellow_24))
-        var draw3 = context?.getDrawable(prefs.getInt("colorDraw3",R.drawable.baseline_circle_blue_24))
-        var draw4 = context?.getDrawable(prefs.getInt("colorDraw4",R.drawable.baseline_circle_red_24))
+        var draw1 = context?.getDrawable(prefsColors.getInt("colorDraw1",R.drawable.baseline_circle_green_24))
+        var draw2 = context?.getDrawable(prefsColors.getInt("colorDraw2",R.drawable.baseline_circle_yellow_24))
+        var draw3 = context?.getDrawable(prefsColors.getInt("colorDraw3",R.drawable.baseline_circle_blue_24))
+        var draw4 = context?.getDrawable(prefsColors.getInt("colorDraw4",R.drawable.baseline_circle_red_24))
 
         draw1?.setBounds(0,0,100,100)
         draw2?.setBounds(0,0,100,100)
         draw3?.setBounds(0,0,100,100)
         draw4?.setBounds(0,0,100,100)
 
-        radioButton1.setText(prefs.getString("colorContent1","工作"))
         radioButton1.setCompoundDrawables(draw1,null,null,null)
-        radioButton2.setText(prefs.getString("colorContent2","個人"))
         radioButton2.setCompoundDrawables(draw2,null,null,null)
-        radioButton3.setText(prefs.getString("colorContent3","其他"))
         radioButton3.setCompoundDrawables(draw3,null,null,null)
-        radioButton4.setText(prefs.getString("colorContent4",""))
         radioButton4.setCompoundDrawables(draw4,null,null,null)
 
-        colorsList.add(Colors(prefs.getString("color1","green"),prefs.getInt("colorDraw1",R.drawable.baseline_circle_green_24)
-            ,prefs.getString("colorContent1","工作"),4,"radioButton1"))
-        colorsList.add(Colors(prefs.getString("color2","yellow"),prefs.getInt("colorDraw2",R.drawable.baseline_circle_yellow_24)
-            ,prefs.getString("colorContent2","個人"),3,"radioButton2"))
-        colorsList.add(Colors(prefs.getString("color3","blue"),prefs.getInt("colorDraw3",R.drawable.baseline_circle_blue_24)
-            ,prefs.getString("colorContent3","其他"),2,"radioButton3"))
-        colorsList.add(Colors(prefs.getString("color4","red"),prefs.getInt("colorDraw4",R.drawable.baseline_circle_red_24)
-            ,prefs.getString("colorContent4",""),1,"radioButton4"))
+        radioButton1.setText(prefsColors.getString("colorContent1","工作"))
+        radioButton2.setText(prefsColors.getString("colorContent2","個人"))
+        radioButton3.setText(prefsColors.getString("colorContent3","其他"))
+        radioButton4.setText(prefsColors.getString("colorContent4",""))
 
-        val editor2 = prefs2.edit()
-        editor2.putString(prefs.getString("color1","green"),"radioButton1")
-        editor2.putString(prefs.getString("color2","yellow"),"radioButton2")
-        editor2.putString(prefs.getString("color3","blue"),"radioButton3")
-        editor2.putString(prefs.getString("color4","red"),"radioButton4")
-        editor2.apply()
+        // isActivity == "MainActivity"
+        colorsList.add(Colors(prefsColors.getString("color1","green"),prefsColors.getInt("colorDraw1",R.drawable.baseline_circle_green_24)
+            ,prefsColors.getString("colorContent1","工作"),4,"radioButton1"))
+        colorsList.add(Colors(prefsColors.getString("color2","yellow"),prefsColors.getInt("colorDraw2",R.drawable.baseline_circle_yellow_24)
+            ,prefsColors.getString("colorContent2","個人"),3,"radioButton2"))
+        colorsList.add(Colors(prefsColors.getString("color3","blue"),prefsColors.getInt("colorDraw3",R.drawable.baseline_circle_blue_24)
+            ,prefsColors.getString("colorContent3","其他"),2,"radioButton3"))
+        colorsList.add(Colors(prefsColors.getString("color4","red"),prefsColors.getInt("colorDraw4",R.drawable.baseline_circle_red_24)
+            ,prefsColors.getString("colorContent4",""),1,"radioButton4"))
 
-        selectColor(colorDefault)
+        val editorRadioButtons = prefsRadioButtons.edit()
+        editorRadioButtons.putString(prefsColors.getString("color1","green"),"radioButton1")
+        editorRadioButtons.putString(prefsColors.getString("color2","yellow"),"radioButton2")
+        editorRadioButtons.putString(prefsColors.getString("color3","blue"),"radioButton3")
+        editorRadioButtons.putString(prefsColors.getString("color4","red"),"radioButton4")
+        editorRadioButtons.apply()
 
+        if(isActivity == "MainActivity"){
+            selectColorDefaultMode(colorDefaultMode)
+        }else if(isActivity == "NotesActivity"){
+            selectColorDefault(notesUpdateColor)
+        }
+
+        if(isActivity == "NotesActivity"){
+            topLinearLayout.setVisibility(View.GONE)
+            radioButton0.setVisibility(View.GONE)
+        }
+
+        // isActivity == "MainActivity"
         val layoutManager = LinearLayoutManager(context)
         colorsRecyclerView.layoutManager = layoutManager
         val adapter = ColorsAdapter(colorsList)
         colorsRecyclerView.adapter = adapter
         val callback: ItemTouchHelper.Callback = SimpleItemTouchHelperCallback(adapter)
-        val touchHelper: ItemTouchHelper = ItemTouchHelper(callback)
+        val touchHelper = ItemTouchHelper(callback)
         touchHelper.attachToRecyclerView(colorsRecyclerView)
-
-
 
         radioButton1.setOnClickListener {
             radioButton1.setChecked(true)
@@ -122,14 +147,21 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(false)
             radioButton0.setChecked(false)
-            val color = prefs.getString("color1","green")
+            val color = prefsColors.getString("color1","green")
             if (color != null) {
                 radioButtonListener.sendValue(color)
             }
-            val editor = prefs.edit()
-            editor.putString("colorDefault",color)
-            editor.apply()
-            colorDefault = prefs.getString("colorDefault","allcolor")
+            val editor = prefsColors.edit()
+
+            if(isActivity == "MainActivity"){
+                editor.putString("colorDefaultMode",color)
+                editor.apply()
+                colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+            }else if(isActivity == "NotesActivity"){
+                editor.putString("colorDefault",color)
+                editor.apply()
+                colorDefault = prefsColors.getString("colorDefault","green")
+            }
         }
 
         radioButton2.setOnClickListener {
@@ -138,14 +170,21 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(false)
             radioButton0.setChecked(false)
-            val color = prefs.getString("color2","yellow")
+            val color = prefsColors.getString("color2","yellow")
             if (color != null) {
                 radioButtonListener.sendValue(color)
             }
-            val editor = prefs.edit()
-            editor.putString("colorDefault",color)
-            editor.apply()
-            colorDefault = prefs.getString("colorDefault","allcolor")
+            val editor = prefsColors.edit()
+
+            if(isActivity == "MainActivity"){
+                editor.putString("colorDefaultMode",color)
+                editor.apply()
+                colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+            }else if(isActivity == "NotesActivity"){
+                editor.putString("colorDefault",color)
+                editor.apply()
+                colorDefault = prefsColors.getString("colorDefault","green")
+            }
         }
 
         radioButton3.setOnClickListener {
@@ -154,14 +193,21 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(true)
             radioButton4.setChecked(false)
             radioButton0.setChecked(false)
-            val color = prefs.getString("color3","blue")
+            val color = prefsColors.getString("color3","blue")
             if (color != null) {
                 radioButtonListener.sendValue(color)
             }
-            val editor = prefs.edit()
-            editor.putString("colorDefault",color)
-            editor.apply()
-            colorDefault = prefs.getString("colorDefault","allcolor")
+            val editor = prefsColors.edit()
+
+            if(isActivity == "MainActivity"){
+                editor.putString("colorDefaultMode",color)
+                editor.apply()
+                colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+            }else if(isActivity == "NotesActivity"){
+                editor.putString("colorDefault",color)
+                editor.apply()
+                colorDefault = prefsColors.getString("colorDefault","green")
+            }
         }
 
         radioButton4.setOnClickListener {
@@ -170,14 +216,21 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(true)
             radioButton0.setChecked(false)
-            val color = prefs.getString("color4","red")
+            val color = prefsColors.getString("color4","red")
             if (color != null) {
                 radioButtonListener.sendValue(color)
             }
-            val editor = prefs.edit()
-            editor.putString("colorDefault",color)
-            editor.apply()
-            colorDefault = prefs.getString("colorDefault","allcolor")
+            val editor = prefsColors.edit()
+
+            if(isActivity == "MainActivity"){
+                editor.putString("colorDefaultMode",color)
+                editor.apply()
+                colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+            }else if(isActivity == "NotesActivity"){
+                editor.putString("colorDefault",color)
+                editor.apply()
+                colorDefault = prefsColors.getString("colorDefault","green")
+            }
         }
 
         radioButton0.setOnClickListener {
@@ -186,91 +239,97 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(false)
             radioButton0.setChecked(true)
-            val color = prefs.getString("color0","allcolor")
+            val color = prefsColors.getString("color0","allcolor")
             if (color != null) {
                 radioButtonListener.sendValue(color)
             }
-            val editor = prefs.edit()
-            editor.putString("colorDefault",color)
-            editor.apply()
-            colorDefault = prefs.getString("colorDefault","allcolor")
+            val editor = prefsColors.edit()
+
+            if(isActivity == "MainActivity"){
+                editor.putString("colorDefaultMode",color)
+                editor.apply()
+                colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+            }
         }
+
+
 
         edit_finish.setOnClickListener {
             if(edit_finish.text.toString() == "編輯"){
                 colorRadioGroup.setVisibility(View.GONE)
                 colorsRecyclerView.setVisibility(View.VISIBLE)
-                txv.setText("顏色")
+                filterTxv.setText("顏色")
                 edit_finish.setText("完成")
             }else if(edit_finish.text.toString() == "完成"){
                 colorRadioGroup.setVisibility(View.VISIBLE)
                 colorsRecyclerView.setVisibility(View.GONE)
-                txv.setText("篩選")
+                filterTxv.setText("篩選")
                 edit_finish.setText("編輯")
 
-                val editor = prefs.edit()
+                val editorColors = prefsColors.edit()
 
-                editor.putString("color1",adapter.colorsList[0].color)
-                editor.putString("color2",adapter.colorsList[1].color)
-                editor.putString("color3",adapter.colorsList[2].color)
-                editor.putString("color4",adapter.colorsList[3].color)
+                editorColors.putString("color1",adapter.colorsList[0].color)
+                editorColors.putString("color2",adapter.colorsList[1].color)
+                editorColors.putString("color3",adapter.colorsList[2].color)
+                editorColors.putString("color4",adapter.colorsList[3].color)
 
-                editor.putString("colorContent1",adapter.colorsList[0].colorContent)
-                adapter.colorsList[0].colorDraw?.let { it -> editor.putInt("colorDraw1", it) }
-                editor.putString("colorContent2",adapter.colorsList[1].colorContent)
-                adapter.colorsList[1].colorDraw?.let { it -> editor.putInt("colorDraw2", it) }
-                editor.putString("colorContent3",adapter.colorsList[2].colorContent)
-                adapter.colorsList[2].colorDraw?.let { it -> editor.putInt("colorDraw3", it) }
-                editor.putString("colorContent4",adapter.colorsList[3].colorContent)
-                adapter.colorsList[3].colorDraw?.let { it -> editor.putInt("colorDraw4", it) }
+                adapter.colorsList[0].colorDraw?.let { it1 -> editorColors.putInt("colorDraw1", it1) }
+                adapter.colorsList[1].colorDraw?.let { it2 -> editorColors.putInt("colorDraw2", it2) }
+                adapter.colorsList[2].colorDraw?.let { it3 -> editorColors.putInt("colorDraw3", it3) }
+                adapter.colorsList[3].colorDraw?.let { it4 -> editorColors.putInt("colorDraw4", it4) }
 
-                editor.putInt(adapter.colorsList[0].color,4)
-                editor.putInt(adapter.colorsList[1].color,3)
-                editor.putInt(adapter.colorsList[2].color,2)
-                editor.putInt(adapter.colorsList[3].color,1)
+                editorColors.putString("colorContent1",adapter.colorsList[0].colorContent)
+                editorColors.putString("colorContent2",adapter.colorsList[1].colorContent)
+                editorColors.putString("colorContent3",adapter.colorsList[2].colorContent)
+                editorColors.putString("colorContent4",adapter.colorsList[3].colorContent)
 
-                editor.apply()
+                editorColors.putInt(adapter.colorsList[0].color,4) //顏色 對 顏色等級 colorsRecyclerView由上到下 最上面等級最高 最下面等級最低
+                editorColors.putInt(adapter.colorsList[1].color,3)
+                editorColors.putInt(adapter.colorsList[2].color,2)
+                editorColors.putInt(adapter.colorsList[3].color,1)
 
-                val editor2 = prefs2.edit()
-                editor2.putString(adapter.colorsList[0].color,"radioButton1")
-                editor2.putString(adapter.colorsList[1].color,"radioButton2")
-                editor2.putString(adapter.colorsList[2].color,"radioButton3")
-                editor2.putString(adapter.colorsList[3].color,"radioButton4")
-                editor2.apply()
+                editorColors.apply()
 
-                draw1 = context?.getDrawable(prefs.getInt("colorDraw1",R.drawable.baseline_circle_green_24))
-                draw2 = context?.getDrawable(prefs.getInt("colorDraw2",R.drawable.baseline_circle_yellow_24))
-                draw3 = context?.getDrawable(prefs.getInt("colorDraw3",R.drawable.baseline_circle_blue_24))
-                draw4 = context?.getDrawable(prefs.getInt("colorDraw4",R.drawable.baseline_circle_red_24))
+                //val editorRadioButtons = prefsRadioButtons.edit() //改名測試(OK) editor2 -> editorRadioButtons
+                editorRadioButtons.putString(adapter.colorsList[0].color,"radioButton1")
+                editorRadioButtons.putString(adapter.colorsList[1].color,"radioButton2")
+                editorRadioButtons.putString(adapter.colorsList[2].color,"radioButton3")
+                editorRadioButtons.putString(adapter.colorsList[3].color,"radioButton4")
+                editorRadioButtons.apply()
+
+                draw1 = context?.getDrawable(prefsColors.getInt("colorDraw1",R.drawable.baseline_circle_green_24))
+                draw2 = context?.getDrawable(prefsColors.getInt("colorDraw2",R.drawable.baseline_circle_yellow_24))
+                draw3 = context?.getDrawable(prefsColors.getInt("colorDraw3",R.drawable.baseline_circle_blue_24))
+                draw4 = context?.getDrawable(prefsColors.getInt("colorDraw4",R.drawable.baseline_circle_red_24))
 
                 draw1?.setBounds(0,0,100,100)
                 draw2?.setBounds(0,0,100,100)
                 draw3?.setBounds(0,0,100,100)
                 draw4?.setBounds(0,0,100,100)
 
-                radioButton1.setText(prefs.getString("colorContent1","工作"))
                 radioButton1.setCompoundDrawables(draw1,null,null,null)
-                radioButton2.setText(prefs.getString("colorContent2","個人"))
                 radioButton2.setCompoundDrawables(draw2,null,null,null)
-                radioButton3.setText(prefs.getString("colorContent3","其他"))
                 radioButton3.setCompoundDrawables(draw3,null,null,null)
-                radioButton4.setText(prefs.getString("colorContent4",""))
                 radioButton4.setCompoundDrawables(draw4,null,null,null)
 
-                selectColor(colorDefault)
+                radioButton1.setText(prefsColors.getString("colorContent1","工作"))
+                radioButton2.setText(prefsColors.getString("colorContent2","個人"))
+                radioButton3.setText(prefsColors.getString("colorContent3","其他"))
+                radioButton4.setText(prefsColors.getString("colorContent4",""))
 
-                Log.d("testsss", "green ="+prefs.getInt("green",0)+" yellow ="+prefs.getInt("yellow",0)+" blue ="+prefs.getInt("blue",0)+" red ="+prefs.getInt("red",0))
+                selectColorDefaultMode(colorDefaultMode)
+
+                Log.d("testsss", "green =" + prefsColors.getInt("green",0) + " yellow =" + prefsColors.getInt("yellow",0) +
+                        " blue =" + prefsColors.getInt("blue",0) + " red =" + prefsColors.getInt("red",0))
 
                 imm.hideSoftInputFromWindow(edit_finish.windowToken,0)
-            }
+            } //edit_finish.text.toString() == "完成"
+        } //edit_finish.setOnClickListener
+    } //onViewCreated
 
-        }
-
-    }
-
-    fun selectColor(default: String?){
-        if(colorDefault == default){
-            val radioButtonName = prefs2.getString(default,"radioButton0")
+    fun selectColorDefaultMode(default: String?){
+        if(colorDefaultMode == default){ //??? 感覺這行if不需要
+            val radioButtonName = prefsRadioButtons.getString(default,"radioButton0") //顏色 對 radioButton位置
             if(radioButtonName == "radioButton1"){
                 Thread.sleep(50)
                 radioButton1.setChecked(true)
@@ -307,6 +366,39 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
                 radioButton4.setChecked(false)
                 radioButton0.setChecked(true)
             }
+        }
+    }
+
+    fun selectColorDefault(default: String?){
+        val radioButtonName = prefsRadioButtons.getString(default,"radioButton1") //顏色 對 radioButton位置
+        if(radioButtonName == "radioButton1"){
+            Thread.sleep(50)
+            radioButton1.setChecked(true)
+            radioButton2.setChecked(false)
+            radioButton3.setChecked(false)
+            radioButton4.setChecked(false)
+            radioButton0.setChecked(false)
+        }else if(radioButtonName == "radioButton2"){
+            Thread.sleep(50)
+            radioButton1.setChecked(false)
+            radioButton2.setChecked(true)
+            radioButton3.setChecked(false)
+            radioButton4.setChecked(false)
+            radioButton0.setChecked(false)
+        }else if(radioButtonName == "radioButton3"){
+            Thread.sleep(50)
+            radioButton1.setChecked(false)
+            radioButton2.setChecked(false)
+            radioButton3.setChecked(true)
+            radioButton4.setChecked(false)
+            radioButton0.setChecked(false)
+        }else if(radioButtonName == "radioButton4"){
+            Thread.sleep(50)
+            radioButton1.setChecked(false)
+            radioButton2.setChecked(false)
+            radioButton3.setChecked(false)
+            radioButton4.setChecked(true)
+            radioButton0.setChecked(false)
         }
     }
 

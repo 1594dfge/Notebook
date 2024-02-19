@@ -1,6 +1,8 @@
 package com.example.notebook
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +17,8 @@ import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -35,7 +39,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
     var notesList = ArrayList<Notes>()
     var uuidList = ArrayList<String>()
-    var notesListPosition by Delegates.notNull<Int>() //更新資料 旋轉螢幕 切換深淺模式 會出現BUG 所以要儲存
+    var notesListPosition by Delegates.notNull<Int>() //更新資料 旋轉螢幕 切換深淺模式 會出現BUG 所以要用SharedPreferences儲存
     val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
     lateinit var db : SQLiteDatabase
 
@@ -46,12 +50,18 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     var checkBoxList = ArrayList<Int>()
     var checkBoxStateList = ArrayList<checkBoxState>()
 
+    lateinit var prefsColors : SharedPreferences
+    lateinit var colorDefault : String
+    lateinit var colorDefaultMode : String
+
     private val TAG = "testsss"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         Log.d(TAG, "MainActivity_onCreate: ")
+
+        //AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO) //禁用深色模式
 
         toolbar = findViewById(R.id.toolbar)
         top_toolbar = findViewById(R.id.topToolbar)
@@ -65,6 +75,17 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         intentNotesActivity = Intent(this, NotesActivity::class.java)
 
         setSupportActionBar(toolbar)
+
+        prefsColors = this.getSharedPreferences("colors", Context.MODE_PRIVATE)
+        colorDefault = prefsColors.getString("colorDefault","green").toString()
+        colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
+
+        val editor = prefsColors.edit()
+        editor.putInt("green",4)
+        editor.putInt("yellow",3)
+        editor.putInt("blue",2)
+        editor.putInt("red",1)
+        editor.apply()
 
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
@@ -85,18 +106,18 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
                     if(uuidList.contains(uuid)){
                         //update
-                        notesList.set(notesListPosition, Notes(uuid,title,content,color,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
-                        adapter.notifyDataSetChanged()
+                        notesList.set(notesListPosition, Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                        adapter.notifyDataSetChanged() //要更改
                     }else{
                         //create
-                        notesList.add(Notes(uuid,title,content,color,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                        notesList.add(Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                         uuidList.add(uuid.toString())
                         checkBoxStateList.add(checkBoxState(false))
-                        adapter.notifyDataSetChanged()
+                        adapter.notifyDataSetChanged() //要更改
                     }
                 }else if(item.resultCode == 0){
                     get_Notes()
-                    adapter.notifyDataSetChanged()
+                    adapter.notifyDataSetChanged() //要更改
                 }
             }
         )
@@ -105,7 +126,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             intentNotesActivity.putExtra("uuid", "")
             intentNotesActivity.putExtra("title","")
             intentNotesActivity.putExtra("content","")
-            intentNotesActivity.putExtra("colors","") //預設顏色
+            colorDefault = prefsColors.getString("colorDefault","green").toString()
+            intentNotesActivity.putExtra("color", colorDefault) //預設顏色
             intentNotesActivity.putExtra("createDate","")
             intentNotesActivity.putExtra("updateDate","")
             notesactivityLauncher.launch(intentNotesActivity)
@@ -125,7 +147,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
             checkBoxList.clear()
 
-            get_Notes()
+            get_Notes() //要更改
 
             inDeletionMode = false
             toolbar.setVisibility(View.VISIBLE)
@@ -134,7 +156,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             pagenavigation.setVisibility(View.VISIBLE)
             delete_button.setVisibility(View.GONE)
 
-            adapter.notifyDataSetChanged()
+            adapter.notifyDataSetChanged() //要更改
         }
 
         onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
@@ -143,7 +165,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 if(inDeletionMode){
                     checkBoxList.clear()
 
-                    get_Notes()
+                    get_Notes() //要更改
 
                     inDeletionMode = false
                     toolbar.setVisibility(View.VISIBLE)
@@ -152,16 +174,51 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     pagenavigation.setVisibility(View.VISIBLE)
                     delete_button.setVisibility(View.GONE)
 
-                    adapter.notifyDataSetChanged()
+                    adapter.notifyDataSetChanged() //要更改
                 }else{
                     finish()
                 }
             }
         })
-    }
+
+
+        top_toolbar.setNavigationIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_arrow_back_24))
+        top_toolbar.setNavigationOnClickListener {
+            if(inDeletionMode){
+                checkBoxList.clear()
+
+                get_Notes() //要更改
+
+                inDeletionMode = false
+                toolbar.setVisibility(View.VISIBLE)
+                top_toolbar.setVisibility(View.GONE)
+                add_button.setVisibility(View.VISIBLE)
+                pagenavigation.setVisibility(View.VISIBLE)
+                delete_button.setVisibility(View.GONE)
+
+                adapter.notifyDataSetChanged() //要更改
+            }else{
+                finish()
+            }
+        }
+
+    } //onCreate
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.mainactivity_top_menu, menu)
+
+        if(colorDefaultMode == "green"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_green_24))
+        }else if(colorDefaultMode == "yellow"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_yellow_24))
+        }else if(colorDefaultMode == "blue"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_blue_24))
+        }else if(colorDefaultMode == "red"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_red_24))
+        }else if(colorDefaultMode == "allcolor"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_color_lens_24))
+        }
+
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -176,10 +233,21 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     }
 
     override fun sendValue(value: String) {
-        Log.d(TAG, "sendValue: "+value)
+        if(value == "green"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_green_24))
+        }else if(value == "yellow"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_yellow_24))
+        }else if(value == "blue"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_blue_24))
+        }else if(value == "red"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_red_24))
+        }else if(value == "allcolor"){
+            toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_color_lens_24))
+        }
+        Log.d(TAG, "MainActivity sendValue: "+value)
     }
 
-    fun get_Notes(){
+    fun get_Notes(){ //根據colorDefault的顏色呈現不同的顏色結果
         notesList.clear()
         uuidList.clear()
         checkBoxStateList.clear()
@@ -189,11 +257,11 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
                 val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
                 val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
-                val colors = cursor.getString(cursor.getColumnIndexOrThrow("color"))
+                val color = cursor.getString(cursor.getColumnIndexOrThrow("color"))
                 val createDate = cursor.getString(cursor.getColumnIndexOrThrow("createDate"))
                 val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
-                notesList.add(Notes(uuid,title,content,colors,LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                notesList.add(Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                 uuidList.add(uuid)
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
@@ -207,6 +275,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             val notesDate: TextView = view.findViewById(R.id.notesDate)
             val notesContent: TextView = view.findViewById(R.id.notesContent)
             val notesCheckBox: CheckBox = view.findViewById(R.id.notesCheckBox)
+            val notesColor: TextView = view.findViewById(R.id.notesColor)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -226,7 +295,6 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     notesactivityLauncher.launch(intentNotesActivity)
                 }else{
                     val pos : Int = holder.notesCheckBox.getTag() as Int
-                    Log.d(TAG, "onClick: pos2"+pos)
 
                     if (checkBoxStateList.get(pos).get_Checked()) {
                         checkBoxStateList.get(pos).set_Checked(false);
@@ -251,7 +319,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     notifyDataSetChanged()
                 }
 
-                true
+                false
             }
 
             return holder
@@ -259,9 +327,19 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val notes = notesList[position]
-            holder.notesTitle.text = notes.title
+
+            if(notes.title==""){
+                holder.notesTitle.text = notes.content
+            }else{
+                holder.notesTitle.text = notes.title
+            }
+
             holder.notesDate.text = notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
             holder.notesContent.text = notes.content
+            holder.notesColor.text = notes.color
+            top_toolbar.setTitle("已選0項")
+
+            //Log.d(TAG, "onBindViewHolder: "+notes.color)
 
             if(inDeletionMode){
                 holder.notesCheckBox.setVisibility(View.VISIBLE)
@@ -272,7 +350,6 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 holder.notesCheckBox.setOnClickListener(object : View.OnClickListener {
                     override fun onClick(v: View) {
                         val pos : Int = holder.notesCheckBox.getTag() as Int //pos == position
-                        Log.d(TAG, "onClick: pos1"+pos)
 
                         if (checkBoxStateList.get(pos).get_Checked()) {
                             checkBoxStateList.get(pos).set_Checked(false);
@@ -281,6 +358,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                             checkBoxStateList.get(pos).set_Checked(true);
                             checkBoxList.add(holder.absoluteAdapterPosition)
                         }
+
+                        top_toolbar.setTitle("已選${checkBoxList.size}項")
                     }
                 })
             }else{

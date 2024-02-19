@@ -18,7 +18,8 @@
             android:layout_height="?attr/actionBarSize"
             android:visibility="visible"
             android:background="@color/teal_700"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
+            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+            app:menu="@menu/mainactivity_top_menu"/>
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/topToolbar"
@@ -27,7 +28,7 @@
             android:visibility="gone"
             android:background="@color/teal_700"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:menu="@menu/topnavigation_menu" />
+            app:menu="@menu/mainactivity_hide_top_menu" />
 
     </FrameLayout>
 
