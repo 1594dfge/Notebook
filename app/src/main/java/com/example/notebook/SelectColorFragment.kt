@@ -124,7 +124,7 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
         if(isActivity == "MainActivity"){
             selectColorDefaultMode(colorDefaultMode)
         }else if(isActivity == "NotesActivity"){
-            selectColorDefault(notesUpdateColor)
+            selectColorDefaultMode(notesUpdateColor)
         }
 
         if(isActivity == "NotesActivity"){
@@ -147,20 +147,25 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(false)
             radioButton0.setChecked(false)
+
             val color = prefsColors.getString("color1","green")
             if (color != null) {
-                radioButtonListener.sendValue(color)
+                //radioButtonListener.sendValue(color)
             }
-            val editor = prefsColors.edit()
 
+            val editor = prefsColors.edit()
             if(isActivity == "MainActivity"){
                 editor.putString("colorDefaultMode",color)
                 editor.apply()
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+
+                radioButtonListener.sendValue(colorDefaultMode.toString())
             }else if(isActivity == "NotesActivity"){
                 editor.putString("colorDefault",color)
                 editor.apply()
                 colorDefault = prefsColors.getString("colorDefault","green")
+
+                radioButtonListener.sendValue(colorDefault.toString())
             }
         }
 
@@ -170,20 +175,25 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(false)
             radioButton0.setChecked(false)
+
             val color = prefsColors.getString("color2","yellow")
             if (color != null) {
-                radioButtonListener.sendValue(color)
+                //radioButtonListener.sendValue(color)
             }
-            val editor = prefsColors.edit()
 
+            val editor = prefsColors.edit()
             if(isActivity == "MainActivity"){
                 editor.putString("colorDefaultMode",color)
                 editor.apply()
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+
+                radioButtonListener.sendValue(colorDefaultMode.toString())
             }else if(isActivity == "NotesActivity"){
                 editor.putString("colorDefault",color)
                 editor.apply()
                 colorDefault = prefsColors.getString("colorDefault","green")
+
+                radioButtonListener.sendValue(colorDefault.toString())
             }
         }
 
@@ -193,20 +203,25 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(true)
             radioButton4.setChecked(false)
             radioButton0.setChecked(false)
+
             val color = prefsColors.getString("color3","blue")
             if (color != null) {
-                radioButtonListener.sendValue(color)
+                //radioButtonListener.sendValue(color)
             }
-            val editor = prefsColors.edit()
 
+            val editor = prefsColors.edit()
             if(isActivity == "MainActivity"){
                 editor.putString("colorDefaultMode",color)
                 editor.apply()
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+
+                radioButtonListener.sendValue(colorDefaultMode.toString())
             }else if(isActivity == "NotesActivity"){
                 editor.putString("colorDefault",color)
                 editor.apply()
                 colorDefault = prefsColors.getString("colorDefault","green")
+
+                radioButtonListener.sendValue(colorDefault.toString())
             }
         }
 
@@ -216,20 +231,25 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(true)
             radioButton0.setChecked(false)
+
             val color = prefsColors.getString("color4","red")
             if (color != null) {
-                radioButtonListener.sendValue(color)
+                //radioButtonListener.sendValue(color)
             }
-            val editor = prefsColors.edit()
 
+            val editor = prefsColors.edit()
             if(isActivity == "MainActivity"){
                 editor.putString("colorDefaultMode",color)
                 editor.apply()
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+
+                radioButtonListener.sendValue(colorDefaultMode.toString())
             }else if(isActivity == "NotesActivity"){
                 editor.putString("colorDefault",color)
                 editor.apply()
                 colorDefault = prefsColors.getString("colorDefault","green")
+
+                radioButtonListener.sendValue(colorDefault.toString())
             }
         }
 
@@ -239,16 +259,19 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(false)
             radioButton0.setChecked(true)
+
             val color = prefsColors.getString("color0","allcolor")
             if (color != null) {
-                radioButtonListener.sendValue(color)
+                //radioButtonListener.sendValue(color)
             }
-            val editor = prefsColors.edit()
 
+            val editor = prefsColors.edit()
             if(isActivity == "MainActivity"){
                 editor.putString("colorDefaultMode",color)
                 editor.apply()
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
+
+                radioButtonListener.sendValue(colorDefaultMode.toString())
             }
         }
 
@@ -317,6 +340,7 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
                 radioButton3.setText(prefsColors.getString("colorContent3","其他"))
                 radioButton4.setText(prefsColors.getString("colorContent4",""))
 
+                colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor")
                 selectColorDefaultMode(colorDefaultMode)
 
                 Log.d("testsss", "green =" + prefsColors.getInt("green",0) + " yellow =" + prefsColors.getInt("yellow",0) +
@@ -327,50 +351,8 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
         } //edit_finish.setOnClickListener
     } //onViewCreated
 
-    fun selectColorDefaultMode(default: String?){
-        if(colorDefaultMode == default){ //??? 感覺這行if不需要
-            val radioButtonName = prefsRadioButtons.getString(default,"radioButton0") //顏色 對 radioButton位置
-            if(radioButtonName == "radioButton1"){
-                Thread.sleep(50)
-                radioButton1.setChecked(true)
-                radioButton2.setChecked(false)
-                radioButton3.setChecked(false)
-                radioButton4.setChecked(false)
-                radioButton0.setChecked(false)
-            }else if(radioButtonName == "radioButton2"){
-                Thread.sleep(50)
-                radioButton1.setChecked(false)
-                radioButton2.setChecked(true)
-                radioButton3.setChecked(false)
-                radioButton4.setChecked(false)
-                radioButton0.setChecked(false)
-            }else if(radioButtonName == "radioButton3"){
-                Thread.sleep(50)
-                radioButton1.setChecked(false)
-                radioButton2.setChecked(false)
-                radioButton3.setChecked(true)
-                radioButton4.setChecked(false)
-                radioButton0.setChecked(false)
-            }else if(radioButtonName == "radioButton4"){
-                Thread.sleep(50)
-                radioButton1.setChecked(false)
-                radioButton2.setChecked(false)
-                radioButton3.setChecked(false)
-                radioButton4.setChecked(true)
-                radioButton0.setChecked(false)
-            }else if(radioButtonName == "radioButton0"){
-                Thread.sleep(50)
-                radioButton1.setChecked(false)
-                radioButton2.setChecked(false)
-                radioButton3.setChecked(false)
-                radioButton4.setChecked(false)
-                radioButton0.setChecked(true)
-            }
-        }
-    }
-
-    fun selectColorDefault(default: String?){
-        val radioButtonName = prefsRadioButtons.getString(default,"radioButton1") //顏色 對 radioButton位置
+    fun selectColorDefaultMode(default: String?){ //selectColorDefault
+        val radioButtonName = prefsRadioButtons.getString(default,"radioButton0") //顏色 對 radioButton位置
         if(radioButtonName == "radioButton1"){
             Thread.sleep(50)
             radioButton1.setChecked(true)
@@ -399,8 +381,49 @@ class SelectColorFragment(context: Context) : BottomSheetDialogFragment() {
             radioButton3.setChecked(false)
             radioButton4.setChecked(true)
             radioButton0.setChecked(false)
+        }else if(radioButtonName == "radioButton0"){
+            Thread.sleep(50)
+            radioButton1.setChecked(false)
+            radioButton2.setChecked(false)
+            radioButton3.setChecked(false)
+            radioButton4.setChecked(false)
+            radioButton0.setChecked(true)
         }
     }
+
+
+//    fun selectColorDefault(default: String?){
+//        val radioButtonName = prefsRadioButtons.getString(default,"radioButton1") //顏色 對 radioButton位置
+//        if(radioButtonName == "radioButton1"){
+//            Thread.sleep(50)
+//            radioButton1.setChecked(true)
+//            radioButton2.setChecked(false)
+//            radioButton3.setChecked(false)
+//            radioButton4.setChecked(false)
+//            radioButton0.setChecked(false)
+//        }else if(radioButtonName == "radioButton2"){
+//            Thread.sleep(50)
+//            radioButton1.setChecked(false)
+//            radioButton2.setChecked(true)
+//            radioButton3.setChecked(false)
+//            radioButton4.setChecked(false)
+//            radioButton0.setChecked(false)
+//        }else if(radioButtonName == "radioButton3"){
+//            Thread.sleep(50)
+//            radioButton1.setChecked(false)
+//            radioButton2.setChecked(false)
+//            radioButton3.setChecked(true)
+//            radioButton4.setChecked(false)
+//            radioButton0.setChecked(false)
+//        }else if(radioButtonName == "radioButton4"){
+//            Thread.sleep(50)
+//            radioButton1.setChecked(false)
+//            radioButton2.setChecked(false)
+//            radioButton3.setChecked(false)
+//            radioButton4.setChecked(true)
+//            radioButton0.setChecked(false)
+//        }
+//    }
 
     inner class ColorsAdapter(val colorsList: List<Colors>) : RecyclerView.Adapter<ColorsAdapter.ViewHolder>(),  ItemTouchHelperAdapter{
 

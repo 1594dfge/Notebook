@@ -131,7 +131,7 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
             if(hasFocus){
                 bottomToolber.setVisibility(View.VISIBLE)
                 bottomToolber.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_check_24))
-            } else{
+            }else{
                 bottomToolber.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_create_24))
             }
         }
@@ -187,7 +187,7 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
                     }
                 }
             }
-            true
+            false
         }
     } //onCreate
 

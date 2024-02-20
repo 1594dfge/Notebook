@@ -7,4 +7,9 @@
         android:title="select_color"
         android:icon="@drawable/baseline_color_lens_24"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/sortBy"
+        android:title="sortBy"
+        android:icon="@drawable/baseline_sort_24"
+        app:showAsAction="always" />
 </menu>

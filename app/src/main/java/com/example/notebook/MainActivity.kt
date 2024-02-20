@@ -3,6 +3,7 @@ package com.example.notebook
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
 import android.util.Log
@@ -54,6 +55,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     lateinit var colorDefault : String
     lateinit var colorDefaultMode : String
 
+    lateinit var adapter : MainActivity.NotesAdapter
+
     private val TAG = "testsss"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,9 +92,9 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
-        get_Notes()
-        val adapter = NotesAdapter(notesList, checkBoxStateList)
+        adapter = NotesAdapter(notesList, checkBoxStateList)
         notesRecyclerView.adapter = adapter
+        get_Notes()
 
         notesactivityLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(), ActivityResultCallback<ActivityResult>(){ item ->
@@ -117,7 +120,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     }
                 }else if(item.resultCode == 0){
                     get_Notes()
-                    adapter.notifyDataSetChanged() //要更改
+                    //adapter.notifyDataSetChanged() //要更改
                 }
             }
         )
@@ -156,7 +159,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             pagenavigation.setVisibility(View.VISIBLE)
             delete_button.setVisibility(View.GONE)
 
-            adapter.notifyDataSetChanged() //要更改
+            //adapter.notifyDataSetChanged() //要更改
         }
 
         onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
@@ -174,7 +177,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     pagenavigation.setVisibility(View.VISIBLE)
                     delete_button.setVisibility(View.GONE)
 
-                    adapter.notifyDataSetChanged() //要更改
+                    //adapter.notifyDataSetChanged() //要更改
                 }else{
                     finish()
                 }
@@ -196,7 +199,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 pagenavigation.setVisibility(View.VISIBLE)
                 delete_button.setVisibility(View.GONE)
 
-                adapter.notifyDataSetChanged() //要更改
+                //adapter.notifyDataSetChanged() //要更改
             }else{
                 finish()
             }
@@ -207,6 +210,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.mainactivity_top_menu, menu)
 
+        colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
         if(colorDefaultMode == "green"){
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_green_24))
         }else if(colorDefaultMode == "yellow"){
@@ -228,30 +232,58 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 val bottomSheetFragment = SelectColorFragment(this)
                 bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
             }
+            R.id.sortBy ->{
+
+            }
         }
         return super.onOptionsItemSelected(item)
     }
 
     override fun sendValue(value: String) {
         if(value == "green"){
+            Log.d(TAG, "MainActivity sendValue: "+value)
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_green_24))
+            get_Notes()
+            Thread.sleep(50)
         }else if(value == "yellow"){
+            Log.d(TAG, "MainActivity sendValue: "+value)
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_yellow_24))
+            get_Notes()
+            Thread.sleep(50)
         }else if(value == "blue"){
+            Log.d(TAG, "MainActivity sendValue: "+value)
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_blue_24))
+            get_Notes()
+            Thread.sleep(50)
         }else if(value == "red"){
+            Log.d(TAG, "MainActivity sendValue: "+value)
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_red_24))
+            get_Notes()
+            Thread.sleep(50)
         }else if(value == "allcolor"){
+            Log.d(TAG, "MainActivity sendValue: "+value)
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_color_lens_24))
+            get_Notes()
+            Thread.sleep(50)
         }
-        Log.d(TAG, "MainActivity sendValue: "+value)
+
     }
 
     fun get_Notes(){ //根據colorDefault的顏色呈現不同的顏色結果
         notesList.clear()
         uuidList.clear()
         checkBoxStateList.clear()
-        val cursor = db.query("Notes", null, null, null, null, null, null)
+        colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
+        //val cursor = db.query("Notes", null, null, null, null, null, null)
+        var cursor: Cursor
+        if(colorDefaultMode == "allcolor"){
+            cursor = db.rawQuery("select * from Notes", null)
+            Log.d(TAG, "get_Notes: allcolor")
+        }else{
+            cursor = db.rawQuery("select * from Notes where color=?", arrayOf(colorDefaultMode))
+            Log.d(TAG, "get_Notes: "+colorDefaultMode)
+        }
+
         if (cursor.moveToFirst()) {
             do {
                 val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
@@ -261,12 +293,19 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 val createDate = cursor.getString(cursor.getColumnIndexOrThrow("createDate"))
                 val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
+
                 notesList.add(Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                 uuidList.add(uuid)
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
         }
         cursor.close()
+
+        for(notes in notesList){
+            Log.d(TAG, "notesList "+notes.color)
+        }
+
+        adapter.notifyDataSetChanged()
     }
 
     inner class NotesAdapter(val notesList: List<Notes>, val checkBoxStateList: ArrayList<checkBoxState>) : RecyclerView.Adapter<NotesAdapter.ViewHolder>() {
@@ -305,6 +344,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                         checkBoxList.add(holder.absoluteAdapterPosition)
                         holder.notesCheckBox.setChecked(true)
                     }
+                    top_toolbar.setTitle("已選${checkBoxList.size}項")
                 }
             }
 
@@ -336,8 +376,18 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
             holder.notesDate.text = notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
             holder.notesContent.text = notes.content
-            holder.notesColor.text = notes.color
-            top_toolbar.setTitle("已選0項")
+
+            if(notes.color == "green"){
+                holder.notesColor.setBackground(getDrawable(R.drawable.baseline_circle_green_24))
+            }else if(notes.color == "yellow"){
+                holder.notesColor.setBackground(getDrawable(R.drawable.baseline_circle_yellow_24))
+            }else if(notes.color == "blue"){
+                holder.notesColor.setBackground(getDrawable(R.drawable.baseline_circle_blue_24))
+            }else if(notes.color == "red"){
+                holder.notesColor.setBackground(getDrawable(R.drawable.baseline_circle_red_24))
+            }
+
+            top_toolbar.setTitle("已選${checkBoxList.size}項")
 
             //Log.d(TAG, "onBindViewHolder: "+notes.color)
 
