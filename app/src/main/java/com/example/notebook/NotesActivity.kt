@@ -17,10 +17,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener {
-
     //為什麼使用List，是因為要實現 上一筆內容 下一筆內容 的功能
     //判斷title跟content是否有做更改
     //可能情況 title 沒有 content 沒有   不儲存
@@ -77,7 +77,7 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
         color = intent.getStringExtra("color").toString()
         createDate = intent.getStringExtra("createDate").toString()
         updateDate = intent.getStringExtra("updateDate").toString()
-        latestUpateDate.setText("最後編輯:"+intent.getStringExtra("updateDate"))
+        latestUpateDate.setText("最後編輯:"+updateDate)
 
         titleList.add(title.text.toString())
         contentList.add(content.text.toString())
@@ -97,7 +97,6 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
         }else if(color == "red"){
             topToolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_red_24))
         }
-
 
         imm= getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
@@ -163,7 +162,7 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
         topToolbar.setOnMenuItemClickListener {
             when(it.itemId){
                 R.id.select_color -> {
-                    val bottomSheetFragment = SelectColorFragment(this)
+                    val bottomSheetFragment = SelectColorFragment()
                     bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
                 }
             }
@@ -196,29 +195,29 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
     fun db_insert_update(){
         if(title.text.toString()== ""&&content.text.toString()== ""){
             //delete
+            if(uuid == ""){
+
+            }else{
+                db.execSQL("delete from Notes where uuid = ?", arrayOf(uuid))
+
+                setResult(0)
+            }
         }else if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]&&colorString== color){
 
         }else{
             intent.putExtra("title", title.text.toString())
             intent.putExtra("content", content.text.toString())
             updateDate = LocalDateTime.now().toString()
+            latestUpateDate.setText("最後編輯:"+LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+            Log.d(TAG, "db_insert_update: "+latestUpateDate)
             intent.putExtra("updateDate", updateDate)
 
             if(uuid == ""){
                 Log.d(TAG, "新增資料")
+
                 uuid = UUID.randomUUID().toString()
                 createDate = LocalDateTime.now().toString()
                 color = prefsColors.getString("colorDefault","green").toString()
-
-                val values1 = ContentValues().apply {
-                    put("uuid", uuid)
-                    put("title", title.text.toString())
-                    put("content", content.text.toString())
-                    put("color", color)
-                    put("createDate", createDate)
-                    put("updateDate", updateDate)
-                }
-                db.insert("Notes", null, values1)
             }else{
                 Log.d(TAG, "更改資料")
 
@@ -230,17 +229,17 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
                 }
                 db.update("Notes", values1, "uuid = ?", arrayOf(uuid))
             }
-
             intent.putExtra("uuid", uuid)
             intent.putExtra("createDate", createDate)
             intent.putExtra("color", color) //如果沒有選擇顏色 那就使用原本發送過來的顏色, 如果有 使用notesTopToolbar選擇的顏色
 
             setResult(1000000000,intent)
+
             Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
-            titleString = title.text.toString()
-            contentString = content.text.toString()
-            colorString = color
         }
+        titleString = title.text.toString()
+        contentString = content.text.toString()
+        colorString = color
     }
 
     override fun onStart() {
@@ -265,10 +264,16 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
     override fun onPause() {
         if(title.text.toString()== ""&&content.text.toString()== ""){
             //delete
+            if(uuid == ""){
+
+            }else{
+                db.execSQL("delete from Notes where uuid = ?", arrayOf(uuid))
+            }
         }else if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]&&colorString== color){
 
         }else{
             updateDate = LocalDateTime.now().toString()
+            latestUpateDate.setText("最後編輯:"+LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
             if(uuid == ""){
                 Log.d(TAG, "新增資料")
                 uuid = UUID.randomUUID().toString()
@@ -295,12 +300,12 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
                 }
                 db.update("Notes", values1, "uuid = ?", arrayOf(uuid))
             }
-            setResult(0) //在 onPause 裡做setResult不管怎樣都會失敗 發送0 必須在finish之前發送 才會成功
             Toast.makeText(this,"已儲存",Toast.LENGTH_SHORT).show()
-            titleString = title.text.toString()
-            contentString = content.text.toString()
-            colorString = color
         }
+        setResult(0) //在 onPause 裡做setResult不管怎樣都會失敗 發送0 必須在finish之前發送 才會成功
+        titleString = title.text.toString()
+        contentString = content.text.toString()
+        colorString = color
 
         super.onPause()
         Log.d(TAG, "onPause: ")

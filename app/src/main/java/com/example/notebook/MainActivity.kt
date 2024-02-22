@@ -1,5 +1,6 @@
 package com.example.notebook
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -18,29 +19,30 @@ import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.properties.Delegates
 
 class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener {
-
     lateinit var toolbar : Toolbar
     lateinit var top_toolbar : Toolbar
+    lateinit var searchview : SearchView
     lateinit var notesRecyclerView : RecyclerView
     lateinit var add_button : FloatingActionButton
     lateinit var pagenavigation : BottomNavigationView
     lateinit var delete_button : Button
 
     var notesList = ArrayList<Notes>()
-    var uuidList = ArrayList<String>()
-    var notesListPosition by Delegates.notNull<Int>() //更新資料 旋轉螢幕 切換深淺模式 會出現BUG 所以要用SharedPreferences儲存
+    //更新資料 旋轉螢幕 切換深淺模式 會出現BUG 所以要用SharedPreferences儲存
+    lateinit var prefsNotesList : SharedPreferences
+
     val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
     lateinit var db : SQLiteDatabase
 
@@ -57,6 +59,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
     lateinit var adapter : MainActivity.NotesAdapter
 
+    lateinit var bottomSheetFragment : BottomSheetDialogFragment
+
     private val TAG = "testsss"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,16 +72,19 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
         toolbar = findViewById(R.id.toolbar)
         top_toolbar = findViewById(R.id.topToolbar)
+        searchview = findViewById(R.id.searchview)
         notesRecyclerView=findViewById(R.id.notesRecyclerView)
         add_button = findViewById(R.id.add_button)
         pagenavigation = findViewById(R.id.pagenavigation)
         delete_button = findViewById(R.id.delete_button)
 
+        setSupportActionBar(toolbar)
+
         db = dbHelper.writableDatabase
 
         intentNotesActivity = Intent(this, NotesActivity::class.java)
 
-        setSupportActionBar(toolbar)
+        prefsNotesList = this.getSharedPreferences("notesList",Context.MODE_PRIVATE)
 
         prefsColors = this.getSharedPreferences("colors", Context.MODE_PRIVATE)
         colorDefault = prefsColors.getString("colorDefault","green").toString()
@@ -94,11 +101,15 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         notesRecyclerView.layoutManager = layoutManager
         adapter = NotesAdapter(notesList, checkBoxStateList)
         notesRecyclerView.adapter = adapter
+
         get_Notes()
+
+
 
         notesactivityLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(), ActivityResultCallback<ActivityResult>(){ item ->
                 Log.d(TAG, "onCreate: resultCode"+item.resultCode)
+
                 if(item.resultCode == 1000000000){
                     val uuid = item.data?.getStringExtra("uuid")
                     val title = item.data?.getStringExtra("title")
@@ -107,50 +118,111 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     val createDate = item.data?.getStringExtra("createDate")
                     val updateDate = item.data?.getStringExtra("updateDate")
 
-                    if(uuidList.contains(uuid)){
+                    var update = false
+                    val cursor = db.rawQuery("select uuid from Notes where uuid like ?", arrayOf(uuid))
+                    if (cursor.moveToFirst()) {
+                        do {
+                            val notesuuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
+                            if(notesuuid == uuid){
+                                Log.d(TAG, "update: true")
+                                update = true
+                            }else{
+                                Log.d(TAG, "update: false")
+                                update = false
+                            }
+                        } while (cursor.moveToNext())
+                    }
+                    cursor.close()
+
+                    if(update){
                         //update
-                        notesList.set(notesListPosition, Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
-                        adapter.notifyDataSetChanged() //要更改
+                        if(prefsNotesList.getInt("notesList",-1) == -1){
+                            Log.d(TAG, "prefsNotesList.getInt(\"notesList\",-1) == -1")
+                        }else{
+                            notesList.set(prefsNotesList.getInt("notesList",-1), Notes(uuid,title,content,false,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                            adapter.notifyItemChanged(prefsNotesList.getInt("notesList",-1))
+                        }
+
                     }else{
                         //create
-                        notesList.add(Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
-                        uuidList.add(uuid.toString())
+                        val values1 = ContentValues().apply {
+                            put("uuid", uuid)
+                            put("title", title)
+                            put("content", content)
+                            put("color", color)
+                            put("createDate", createDate)
+                            put("updateDate", updateDate)
+                        }
+                        db.insert("Notes", null, values1)
+
+                        notesList.add(0,Notes(uuid,title,content,false,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
                         checkBoxStateList.add(checkBoxState(false))
-                        adapter.notifyDataSetChanged() //要更改
+                        adapter.notifyItemInserted(0)
+                        adapter.notifyItemRangeChanged(0,notesList.size+1)
                     }
                 }else if(item.resultCode == 0){
                     get_Notes()
-                    //adapter.notifyDataSetChanged() //要更改
                 }
             }
         )
+
+
 
         add_button.setOnClickListener {
             intentNotesActivity.putExtra("uuid", "")
             intentNotesActivity.putExtra("title","")
             intentNotesActivity.putExtra("content","")
-            colorDefault = prefsColors.getString("colorDefault","green").toString()
-            intentNotesActivity.putExtra("color", colorDefault) //預設顏色
+            intentNotesActivity.putExtra("color", prefsColors.getString("colorDefault","green")) //預設顏色
             intentNotesActivity.putExtra("createDate","")
             intentNotesActivity.putExtra("updateDate","")
             notesactivityLauncher.launch(intentNotesActivity)
         }
 
-        delete_button.setOnClickListener {
-            var deleteList = ArrayList<String>()
-            for(checked in checkBoxList){
-                deleteList.add(uuidList[checked])
+        searchview.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                if (query != null) {
+                    if(query.isNotEmpty()){
+                        Log.d(TAG, "onQueryTextSubmit: "+query)
+                    }
+                }
+                searchview.clearFocus()
+                return false
             }
 
-            var dArray = arrayOfNulls<String>(1)
-            for(delete in deleteList){
-                dArray[0] = delete
-                db.delete("Notes", "uuid = ?", dArray)
+            override fun onQueryTextChange(newText: String?): Boolean {
+                Log.d(TAG, "onQueryTextChange: "+newText)
+                return false
             }
+        })
+
+        delete_button.setOnClickListener {
+            //Notes資料表 刪除
+            db.execSQL("delete from Notes where isChecked = ?", arrayOf(true))
+
+            //notesList 刪除
+            var notesListit: MutableIterator<Notes> = notesList.iterator()
+            while(notesListit.hasNext()){
+                Log.d(TAG, "hasNext "+notesListit.hasNext())
+                if(notesListit.next().isChecked == true){
+                    notesListit.remove()
+                    Log.d(TAG, "remove ")
+                }
+            }
+
+            //recyclerview notifyItem
+            for(delete in checkBoxList){
+                adapter.notifyItemRemoved(delete)
+                adapter.notifyItemRangeChanged(delete,notesList.size-1)
+            }
+            adapter.notifyItemRangeChanged(0,notesList.size)
 
             checkBoxList.clear()
+            checkBoxStateList.clear()
 
-            get_Notes() //要更改
+            for(i in 0 until notesList.size){
+                checkBoxStateList.add(checkBoxState(false))
+            }
 
             inDeletionMode = false
             toolbar.setVisibility(View.VISIBLE)
@@ -159,16 +231,24 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             pagenavigation.setVisibility(View.VISIBLE)
             delete_button.setVisibility(View.GONE)
 
-            //adapter.notifyDataSetChanged() //要更改
         }
 
         onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
             //返回鍵
             override fun handleOnBackPressed() {
                 if(inDeletionMode){
-                    checkBoxList.clear()
+                    db.execSQL("update Notes set isChecked = ? where isChecked = ?", arrayOf(false,true))
 
-                    get_Notes() //要更改
+                    for(isChecked in checkBoxList){
+                        notesList[isChecked].isChecked = false
+                    }
+
+                    checkBoxList.clear()
+                    checkBoxStateList.clear()
+
+                    for(i in 0 until notesList.size){
+                        checkBoxStateList.add(checkBoxState(false))
+                    }
 
                     inDeletionMode = false
                     toolbar.setVisibility(View.VISIBLE)
@@ -177,7 +257,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     pagenavigation.setVisibility(View.VISIBLE)
                     delete_button.setVisibility(View.GONE)
 
-                    //adapter.notifyDataSetChanged() //要更改
+                    adapter.notifyItemRangeChanged(0,notesList.size)
                 }else{
                     finish()
                 }
@@ -188,9 +268,18 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         top_toolbar.setNavigationIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_arrow_back_24))
         top_toolbar.setNavigationOnClickListener {
             if(inDeletionMode){
-                checkBoxList.clear()
+                db.execSQL("update Notes set isChecked = ? where isChecked = ?", arrayOf(false,true))
 
-                get_Notes() //要更改
+                for(isChecked in checkBoxList){
+                    notesList[isChecked].isChecked = false
+                }
+
+                checkBoxList.clear()
+                checkBoxStateList.clear()
+
+                for(i in 0 until notesList.size){
+                    checkBoxStateList.add(checkBoxState(false))
+                }
 
                 inDeletionMode = false
                 toolbar.setVisibility(View.VISIBLE)
@@ -199,12 +288,11 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 pagenavigation.setVisibility(View.VISIBLE)
                 delete_button.setVisibility(View.GONE)
 
-                //adapter.notifyDataSetChanged() //要更改
+                adapter.notifyItemRangeChanged(0,notesList.size)
             }else{
                 finish()
             }
         }
-
     } //onCreate
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -229,7 +317,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId){
             R.id.select_color ->{
-                val bottomSheetFragment = SelectColorFragment(this)
+                bottomSheetFragment = SelectColorFragment()
                 bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
             }
             R.id.sortBy ->{
@@ -241,39 +329,38 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
     override fun sendValue(value: String) {
         if(value == "green"){
-            Log.d(TAG, "MainActivity sendValue: "+value)
+            Log.d(TAG, "MainActivity sendValue: $value")
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_green_24))
             get_Notes()
             Thread.sleep(50)
         }else if(value == "yellow"){
-            Log.d(TAG, "MainActivity sendValue: "+value)
+            Log.d(TAG, "MainActivity sendValue: $value")
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_yellow_24))
             get_Notes()
             Thread.sleep(50)
         }else if(value == "blue"){
-            Log.d(TAG, "MainActivity sendValue: "+value)
+            Log.d(TAG, "MainActivity sendValue: $value")
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_blue_24))
             get_Notes()
             Thread.sleep(50)
         }else if(value == "red"){
-            Log.d(TAG, "MainActivity sendValue: "+value)
+            Log.d(TAG, "MainActivity sendValue: $value")
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_circle_red_24))
             get_Notes()
             Thread.sleep(50)
         }else if(value == "allcolor"){
-            Log.d(TAG, "MainActivity sendValue: "+value)
+            Log.d(TAG, "MainActivity sendValue: $value")
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_color_lens_24))
             get_Notes()
             Thread.sleep(50)
         }
-
     }
 
     fun get_Notes(){ //根據colorDefault的顏色呈現不同的顏色結果
         notesList.clear()
-        uuidList.clear()
         checkBoxStateList.clear()
         colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
+
         //val cursor = db.query("Notes", null, null, null, null, null, null)
         var cursor: Cursor
         if(colorDefaultMode == "allcolor"){
@@ -294,16 +381,12 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
 
-                notesList.add(Notes(uuid,title,content,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
-                uuidList.add(uuid)
+                notesList.add(Notes(uuid,title,content,false,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                notesList.sortByDescending { notes -> notes.updateDate  }
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
         }
         cursor.close()
-
-        for(notes in notesList){
-            Log.d(TAG, "notesList "+notes.color)
-        }
 
         adapter.notifyDataSetChanged()
     }
@@ -324,7 +407,9 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             holder.itemView.setOnClickListener {
                 if(!inDeletionMode){
                     val notes = notesList[holder.absoluteAdapterPosition]
-                    notesListPosition = holder.absoluteAdapterPosition
+
+                    prefsNotesList.edit().putInt("notesList",holder.absoluteAdapterPosition).apply()
+
                     intentNotesActivity.putExtra("uuid", notes.uuid)
                     intentNotesActivity.putExtra("title", notes.title)
                     intentNotesActivity.putExtra("content", notes.content)
@@ -334,14 +419,20 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     notesactivityLauncher.launch(intentNotesActivity)
                 }else{
                     val pos : Int = holder.notesCheckBox.getTag() as Int
+                    Log.d(TAG, "pos :"+pos)
+                    Log.d(TAG, "position: "+holder.absoluteAdapterPosition)
 
                     if (checkBoxStateList.get(pos).get_Checked()) {
                         checkBoxStateList.get(pos).set_Checked(false);
-                        checkBoxList.remove(holder.absoluteAdapterPosition)
+                        checkBoxList.remove(pos)
+                        notesList[pos].isChecked = false
+                        db.execSQL("update Notes set isChecked = ? where uuid = ?", arrayOf(false,notesList[pos].uuid))
                         holder.notesCheckBox.setChecked(false)
                     } else {
                         checkBoxStateList.get(pos).set_Checked(true);
-                        checkBoxList.add(holder.absoluteAdapterPosition)
+                        checkBoxList.add(pos)
+                        notesList[pos].isChecked = true
+                        db.execSQL("update Notes set isChecked = ? where uuid = ?", arrayOf(true,notesList[pos].uuid))
                         holder.notesCheckBox.setChecked(true)
                     }
                     top_toolbar.setTitle("已選${checkBoxList.size}項")
@@ -356,6 +447,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     add_button.setVisibility(View.GONE)
                     pagenavigation.setVisibility(View.GONE)
                     delete_button.setVisibility(View.VISIBLE)
+
                     notifyDataSetChanged()
                 }
 
@@ -389,24 +481,28 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
             top_toolbar.setTitle("已選${checkBoxList.size}項")
 
-            //Log.d(TAG, "onBindViewHolder: "+notes.color)
-
             if(inDeletionMode){
                 holder.notesCheckBox.setVisibility(View.VISIBLE)
 
-                holder.notesCheckBox.setChecked(checkBoxStateList.get(position).get_Checked()) //RecyclerView+checkBox 上下滑動實(好像有bug) checkBox點選打勾圖示會亂跳
+                holder.notesCheckBox.setChecked(checkBoxStateList.get(position).get_Checked()) //RecyclerView+checkBox 上下滑動(好像有bug) checkBox點選打勾圖示會亂跳
                 holder.notesCheckBox.setTag(position)
 
                 holder.notesCheckBox.setOnClickListener(object : View.OnClickListener {
                     override fun onClick(v: View) {
                         val pos : Int = holder.notesCheckBox.getTag() as Int //pos == position
+                        Log.d(TAG, "pos :"+pos)
+                        Log.d(TAG, "position: "+holder.absoluteAdapterPosition)
 
                         if (checkBoxStateList.get(pos).get_Checked()) {
                             checkBoxStateList.get(pos).set_Checked(false);
-                            checkBoxList.remove(holder.absoluteAdapterPosition)
+                            checkBoxList.remove(pos)
+                            notesList[pos].isChecked = false
+                            db.execSQL("update Notes set isChecked = ? where uuid = ?", arrayOf(false,notesList[pos].uuid))
                         } else {
                             checkBoxStateList.get(pos).set_Checked(true);
-                            checkBoxList.add(holder.absoluteAdapterPosition)
+                            checkBoxList.add(pos)
+                            notesList[pos].isChecked = true
+                            db.execSQL("update Notes set isChecked = ? where uuid = ?", arrayOf(true,notesList[pos].uuid))
                         }
 
                         top_toolbar.setTitle("已選${checkBoxList.size}項")
@@ -446,7 +542,6 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         Log.d(TAG, "MainActivity_onDestroy: ")
 
         notesList.clear()
-        uuidList.clear()
         checkBoxList.clear()
         checkBoxStateList.clear()
     }
