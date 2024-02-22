@@ -10,7 +10,6 @@ import android.widget.*
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 class SortDataFragment  : BottomSheetDialogFragment() {
-
     lateinit var sortBy_updateDate: RadioButton
     lateinit var sortBy_createDate: RadioButton
     lateinit var sortBy_color: RadioButton

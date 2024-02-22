@@ -33,7 +33,7 @@ import java.time.format.DateTimeFormatter
 
 class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener, SortDataFragment.RadioButtonListener {
     lateinit var toolbar : Toolbar
-    lateinit var top_toolbar : Toolbar
+    lateinit var hide_toolbar : Toolbar
     lateinit var searchview : SearchView
     lateinit var notesRecyclerView : RecyclerView
     lateinit var add_button : FloatingActionButton
@@ -43,6 +43,13 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     var notesList = ArrayList<Notes>()
     //更新資料 旋轉螢幕 切換深淺模式 會出現BUG 所以要用SharedPreferences儲存
     lateinit var prefsNotesList : SharedPreferences
+    lateinit var adapter : MainActivity.NotesAdapter
+
+    var inDeletionMode = false
+    var checkBoxList = ArrayList<Int>()
+    var checkBoxStateList = ArrayList<checkBoxState>()
+
+    lateinit var imm : InputMethodManager
 
     val dbHelper = NotesDatabaseHelper(this, "NotesStore.db", 1)
     lateinit var db : SQLiteDatabase
@@ -50,21 +57,13 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
     lateinit var intentNotesActivity : Intent
     lateinit var notesactivityLauncher : ActivityResultLauncher<Intent>
 
-    var inDeletionMode = false
-    var checkBoxList = ArrayList<Int>()
-    var checkBoxStateList = ArrayList<checkBoxState>()
+    lateinit var bottomSheetFragment : BottomSheetDialogFragment
 
     lateinit var prefsColors : SharedPreferences
     lateinit var colorDefault : String
     lateinit var colorDefaultMode : String
 
-    lateinit var adapter : MainActivity.NotesAdapter
-
-    lateinit var bottomSheetFragment : BottomSheetDialogFragment
-
     lateinit var prefsSortData : SharedPreferences
-
-    lateinit var imm : InputMethodManager
 
     private val TAG = "testsss"
 
@@ -76,7 +75,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         //AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO) //禁用深色模式
 
         toolbar = findViewById(R.id.toolbar)
-        top_toolbar = findViewById(R.id.topToolbar)
+        hide_toolbar = findViewById(R.id.hideToolbar)
         searchview = findViewById(R.id.searchview)
         notesRecyclerView=findViewById(R.id.notesRecyclerView)
         add_button = findViewById(R.id.add_button)
@@ -152,7 +151,6 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
                     }else{
                         //create
-
                         if(title == ""){
                             title = content
                         }
@@ -171,7 +169,6 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                         checkBoxStateList.add(checkBoxState(false))
                         adapter.notifyItemInserted(0)
                         adapter.notifyItemRangeChanged(0,notesList.size+1)
-
                         notesRecyclerView.scrollToPosition(0)
                     }
                 }else if(item.resultCode == 0){
@@ -204,16 +201,13 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             override fun onQueryTextChange(newText: String?): Boolean {
                 Log.d(TAG, "onQueryTextChange: "+newText)
 
-                notesList.clear()
-                checkBoxStateList.clear()
-
                 if(newText == ""){
                     get_Notes()
                 }else{
-                    val cursor: Cursor
+                    notesList.clear()
+                    checkBoxStateList.clear()
 
-                    cursor = db.rawQuery("select * from Notes where title like ?", arrayOf("%$newText%"))
-
+                    val cursor: Cursor = db.rawQuery("select * from Notes where title like ?", arrayOf("%$newText%"))
                     if (cursor.moveToFirst()) {
                         do {
                             val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
@@ -267,7 +261,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
             inDeletionMode = false
             toolbar.setVisibility(View.VISIBLE)
-            top_toolbar.setVisibility(View.GONE)
+            hide_toolbar.setVisibility(View.GONE)
             add_button.setVisibility(View.VISIBLE)
             pagenavigation.setVisibility(View.VISIBLE)
             delete_button.setVisibility(View.GONE)
@@ -293,7 +287,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
                     inDeletionMode = false
                     toolbar.setVisibility(View.VISIBLE)
-                    top_toolbar.setVisibility(View.GONE)
+                    hide_toolbar.setVisibility(View.GONE)
                     add_button.setVisibility(View.VISIBLE)
                     pagenavigation.setVisibility(View.VISIBLE)
                     delete_button.setVisibility(View.GONE)
@@ -305,9 +299,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             }
         })
 
-
-        top_toolbar.setNavigationIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_arrow_back_24))
-        top_toolbar.setNavigationOnClickListener {
+        hide_toolbar.setNavigationIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_arrow_back_24))
+        hide_toolbar.setNavigationOnClickListener {
             if(inDeletionMode){
                 db.execSQL("update Notes set isChecked = ? where isChecked = ?", arrayOf(false,true))
 
@@ -324,7 +317,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
                 inDeletionMode = false
                 toolbar.setVisibility(View.VISIBLE)
-                top_toolbar.setVisibility(View.GONE)
+                hide_toolbar.setVisibility(View.GONE)
                 add_button.setVisibility(View.VISIBLE)
                 pagenavigation.setVisibility(View.VISIBLE)
                 delete_button.setVisibility(View.GONE)
@@ -499,7 +492,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                         db.execSQL("update Notes set isChecked = ? where uuid = ?", arrayOf(true,notesList[pos].uuid))
                         holder.notesCheckBox.setChecked(true)
                     }
-                    top_toolbar.setTitle("已選${checkBoxList.size}項")
+                    hide_toolbar.setTitle("已選${checkBoxList.size}項")
                 }
             }
 
@@ -507,7 +500,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 if(!inDeletionMode){
                     inDeletionMode = true
                     toolbar.setVisibility(View.GONE)
-                    top_toolbar.setVisibility(View.VISIBLE)
+                    hide_toolbar.setVisibility(View.VISIBLE)
                     add_button.setVisibility(View.GONE)
                     pagenavigation.setVisibility(View.GONE)
                     delete_button.setVisibility(View.VISIBLE)
@@ -526,7 +519,14 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
             holder.notesTitle.text = notes.title
 
-            holder.notesDate.text = notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            if(prefsSortData.getString("sortDataDefault","sortBy_updateDate") == "sortBy_createDate"){
+                holder.notesDate.text = notes.createDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                Log.d(TAG, "onBindViewHolder: createDate"+notes.createDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+            }else{
+                holder.notesDate.text = notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                Log.d(TAG, "onBindViewHolder: updateDate")
+            }
+
             holder.notesContent.text = notes.content
 
             if(notes.color == "green"){
@@ -539,7 +539,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 holder.notesColor.setBackground(getDrawable(R.drawable.baseline_circle_red_24))
             }
 
-            top_toolbar.setTitle("已選${checkBoxList.size}項")
+            hide_toolbar.setTitle("已選${checkBoxList.size}項")
 
             if(inDeletionMode){
                 holder.notesCheckBox.setVisibility(View.VISIBLE)
@@ -565,7 +565,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                             db.execSQL("update Notes set isChecked = ? where uuid = ?", arrayOf(true,notesList[pos].uuid))
                         }
 
-                        top_toolbar.setTitle("已選${checkBoxList.size}項")
+                        hide_toolbar.setTitle("已選${checkBoxList.size}項")
                     }
                 })
             }else{

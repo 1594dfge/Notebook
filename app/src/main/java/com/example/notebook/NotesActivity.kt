@@ -21,6 +21,15 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener {
+    lateinit var title : EditText
+    lateinit var content : EditText
+    lateinit var latestUpateDate : TextView
+    lateinit var topToolbar : Toolbar
+    lateinit var bottomToolber : Toolbar
+
+    //新增資料 創建新的uuid 更改資料 使用原本的uuid
+    lateinit var uuid : String
+
     //為什麼使用List，是因為要實現 上一筆內容 下一筆內容 的功能
     //判斷title跟content是否有做更改
     //可能情況 title 沒有 content 沒有   不儲存
@@ -32,9 +41,6 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
     lateinit var titleString : String
     lateinit var contentString : String
 
-    //新增資料 創建新的uuid 更改資料 使用原本的uuid
-    lateinit var uuid : String
-
     //使用 SharedPreferences 文件名:colors 裡的colorDefault預設顏色
     lateinit var color : String
     lateinit var prefsColors : SharedPreferences
@@ -42,12 +48,6 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
 
     lateinit var createDate : String
     lateinit var updateDate : String
-
-    lateinit var title : EditText
-    lateinit var content : EditText
-    lateinit var latestUpateDate : TextView
-    lateinit var topToolbar : Toolbar
-    lateinit var bottomToolber : Toolbar
 
     //控制鍵盤顯示(顯示 不顯示)
     lateinit var imm : InputMethodManager
@@ -278,8 +278,15 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
         }else if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]&&colorString== color){
 
         }else{
+            if(title.text.toString() == ""){
+                title.setText(content.text.toString())
+                titleString = content.text.toString()
+                titleList[titleList.size-1] = content.text.toString()
+            }
+
             updateDate = LocalDateTime.now().toString()
             latestUpateDate.setText("最後編輯:"+LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+
             if(uuid == ""){
                 Log.d(TAG, "新增資料")
                 uuid = UUID.randomUUID().toString()
@@ -297,12 +304,6 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
                 db.insert("Notes", null, values1)
             }else{
                 Log.d(TAG, "更改資料")
-
-                if(title.text.toString() == ""){
-                    title.setText(content.text.toString())
-                    titleString = content.text.toString()
-                    titleList[titleList.size-1] = content.text.toString()
-                }
 
                 val values1 = ContentValues().apply {
                     put("title", title.text.toString())

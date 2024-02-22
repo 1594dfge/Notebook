@@ -18,9 +18,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.util.Collections
 
 class SelectColorFragment() : BottomSheetDialogFragment() {
-
     lateinit var filterTxv: TextView
     lateinit var edit_finish: Button
+    lateinit var topLinearLayout: LinearLayout // isActivity == "NotesActivity" 就將 topLinearLayout gone
     lateinit var radioButton0: RadioButton
     lateinit var radioButton1: RadioButton
     lateinit var radioButton2: RadioButton
@@ -28,18 +28,19 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
     lateinit var radioButton4: RadioButton
     lateinit var colorRadioGroup: LinearLayout //使用RadioGroup會有問題 可能是手動跟自動設定RadioButton造成的錯誤
     lateinit var colorsRecyclerView: RecyclerView
-    lateinit var topLinearLayout: LinearLayout // isActivity == "NotesActivity" 就將 topLinearLayout gone
 
     lateinit var imm : InputMethodManager
 
+    var colorsList = ArrayList<Colors>()
     lateinit var prefsColors: SharedPreferences
     lateinit var prefsRadioButtons: SharedPreferences
-    var colorsList = ArrayList<Colors>()
     lateinit var colorDefaultMode: String //這裡是 選擇呈現甚麼顏色的資料 green、yellow、blue、red、allcolor(呈現所有顏色)
     lateinit var notesUpdateColor: String
+    lateinit var colorDefault: String
 
     lateinit var isActivity: String
-    lateinit var colorDefault: String
+
+    private val TAG = "testsss"
 
     interface RadioButtonListener{
         fun sendValue(value: String)
@@ -69,18 +70,19 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        Log.d("testsss", "activity "+activity.toString())
-        Log.d("testsss", "context: "+context.toString().split(".")[3].split("@")[0])
+        Log.d(TAG, "activity "+activity.toString())
+        Log.d(TAG, "context: "+context.toString().split(".")[3].split("@")[0])
         if(context.toString().split(".")[3].split("@")[0] == "MainActivity"){
             isActivity = "MainActivity"
-            Log.d("testsss", "context = $isActivity")
+            Log.d(TAG, "context = $isActivity")
         }else if(context.toString().split(".")[3].split("@")[0] == "NotesActivity"){
             isActivity = "NotesActivity"
-            Log.d("testsss", "context = $isActivity")
+            Log.d(TAG, "context = $isActivity")
         }
 
         filterTxv=view.findViewById(R.id.filterTxv)
         edit_finish=view.findViewById(R.id.edit_finish)
+        topLinearLayout=view.findViewById(R.id.topLinearLayout)
         radioButton0=view.findViewById(R.id.radioButton0)
         radioButton1=view.findViewById(R.id.radioButton1)
         radioButton2=view.findViewById(R.id.radioButton2)
@@ -88,7 +90,6 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
         radioButton4=view.findViewById(R.id.radioButton4)
         colorRadioGroup=view.findViewById(R.id.colorRadioGroup)
         colorsRecyclerView=view.findViewById(R.id.colorsRecyclerView)
-        topLinearLayout=view.findViewById(R.id.topLinearLayout)
 
         imm= context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
@@ -107,10 +108,10 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
         radioButton3.setCompoundDrawables(draw3,null,null,null)
         radioButton4.setCompoundDrawables(draw4,null,null,null)
 
-        radioButton1.setText(prefsColors.getString("colorContent1","工作") ?: "工作")
-        radioButton2.setText(prefsColors.getString("colorContent2","個人") ?: "個人")
-        radioButton3.setText(prefsColors.getString("colorContent3","其他") ?: "其他")
-        radioButton4.setText(prefsColors.getString("colorContent4","") ?: "")
+        radioButton1.setText(prefsColors.getString("colorContent1","工作"))
+        radioButton2.setText(prefsColors.getString("colorContent2","個人"))
+        radioButton3.setText(prefsColors.getString("colorContent3","其他"))
+        radioButton4.setText(prefsColors.getString("colorContent4",""))
 
         // isActivity == "MainActivity"
         colorsList.add(Colors(
@@ -126,26 +127,6 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
             prefsColors.getString("color4","red"), prefsColors.getInt("colorDraw4",R.drawable.baseline_circle_red_24)
             , prefsColors.getString("colorContent4",""),1,"radioButton4"))
 
-        val editorRadioButtons = prefsRadioButtons.edit()
-        if (editorRadioButtons != null) {
-            editorRadioButtons.putString(prefsColors.getString("color1","green") ?: "green","radioButton1")
-            editorRadioButtons.putString(prefsColors.getString("color2","yellow") ?: "yellow","radioButton2")
-            editorRadioButtons.putString(prefsColors.getString("color3","blue") ?: "blue","radioButton3")
-            editorRadioButtons.putString(prefsColors.getString("color4","red") ?: "red","radioButton4")
-            editorRadioButtons.apply()
-        }
-
-        if(isActivity == "MainActivity"){
-            selectColorDefaultMode(colorDefaultMode)
-        }else if(isActivity == "NotesActivity"){
-            selectColorDefaultMode(notesUpdateColor)
-        }
-
-        if(isActivity == "NotesActivity"){
-            topLinearLayout.setVisibility(View.GONE)
-            radioButton0.setVisibility(View.GONE)
-        }
-
         // isActivity == "MainActivity"
         val layoutManager = LinearLayoutManager(context)
         colorsRecyclerView.layoutManager = layoutManager
@@ -154,6 +135,21 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
         val callback: ItemTouchHelper.Callback = SimpleItemTouchHelperCallback(adapter)
         val touchHelper = ItemTouchHelper(callback)
         touchHelper.attachToRecyclerView(colorsRecyclerView)
+
+        val editorRadioButtons = prefsRadioButtons.edit()
+        editorRadioButtons.putString(prefsColors.getString("color1","green"),"radioButton1")
+        editorRadioButtons.putString(prefsColors.getString("color2","yellow"),"radioButton2")
+        editorRadioButtons.putString(prefsColors.getString("color3","blue"),"radioButton3")
+        editorRadioButtons.putString(prefsColors.getString("color4","red"),"radioButton4")
+        editorRadioButtons.apply()
+
+        if(isActivity == "MainActivity"){
+            selectColorDefaultMode(colorDefaultMode)
+        }else if(isActivity == "NotesActivity"){
+            selectColorDefaultMode(notesUpdateColor)
+            topLinearLayout.setVisibility(View.GONE)
+            radioButton0.setVisibility(View.GONE)
+        }
 
         radioButton1.setOnClickListener {
             radioButton1.setChecked(true)
@@ -199,7 +195,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
 
-                radioButtonListener.sendValue(colorDefaultMode.toString())
+                radioButtonListener.sendValue(colorDefaultMode)
             }else if(isActivity == "NotesActivity"){
                 if (editor != null) {
                     editor.putString("colorDefault",color)
@@ -207,7 +203,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefault = prefsColors.getString("colorDefault","green").toString()
 
-                radioButtonListener.sendValue(colorDefault.toString())
+                radioButtonListener.sendValue(colorDefault)
             }
         }
 
@@ -227,7 +223,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
 
-                radioButtonListener.sendValue(colorDefaultMode.toString())
+                radioButtonListener.sendValue(colorDefaultMode)
             }else if(isActivity == "NotesActivity"){
                 if (editor != null) {
                     editor.putString("colorDefault",color)
@@ -235,7 +231,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefault = prefsColors.getString("colorDefault","green").toString()
 
-                radioButtonListener.sendValue(colorDefault.toString())
+                radioButtonListener.sendValue(colorDefault)
             }
         }
 
@@ -255,7 +251,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
 
-                radioButtonListener.sendValue(colorDefaultMode.toString())
+                radioButtonListener.sendValue(colorDefaultMode)
             }else if(isActivity == "NotesActivity"){
                 if (editor != null) {
                     editor.putString("colorDefault",color)
@@ -263,7 +259,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefault = prefsColors.getString("colorDefault","green").toString()
 
-                radioButtonListener.sendValue(colorDefault.toString())
+                radioButtonListener.sendValue(colorDefault)
             }
         }
 
@@ -283,7 +279,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 }
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
 
-                radioButtonListener.sendValue(colorDefaultMode.toString())
+                radioButtonListener.sendValue(colorDefaultMode)
             }
         }
 
@@ -351,15 +347,15 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                 radioButton3.setCompoundDrawables(draw3,null,null,null)
                 radioButton4.setCompoundDrawables(draw4,null,null,null)
 
-                radioButton1.setText(prefsColors.getString("colorContent1","工作") ?: "工作")
-                radioButton2.setText(prefsColors.getString("colorContent2","個人") ?: "個人")
-                radioButton3.setText(prefsColors.getString("colorContent3","其他") ?: "其他")
-                radioButton4.setText(prefsColors.getString("colorContent4","") ?: "")
+                radioButton1.setText(prefsColors.getString("colorContent1","工作"))
+                radioButton2.setText(prefsColors.getString("colorContent2","個人"))
+                radioButton3.setText(prefsColors.getString("colorContent3","其他"))
+                radioButton4.setText(prefsColors.getString("colorContent4",""))
 
                 colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
                 selectColorDefaultMode(colorDefaultMode)
 
-                Log.d("testsss", "green =" + (prefsColors.getInt("green",0) ?: 0) + " yellow =" + (prefsColors.getInt("yellow",0) ?: 0) +
+                Log.d(TAG, "green =" + (prefsColors.getInt("green",0) ?: 0) + " yellow =" + (prefsColors.getInt("yellow",0) ?: 0) +
                         " blue =" + (prefsColors.getInt("blue",0) ?: 0) + " red =" + (prefsColors.getInt("red",0) ?: 0))
 
                 imm.hideSoftInputFromWindow(edit_finish.windowToken,0)
