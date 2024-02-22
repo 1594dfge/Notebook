@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.TextView
@@ -30,7 +31,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener {
+class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListener, SortDataFragment.RadioButtonListener {
     lateinit var toolbar : Toolbar
     lateinit var top_toolbar : Toolbar
     lateinit var searchview : SearchView
@@ -61,6 +62,10 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
     lateinit var bottomSheetFragment : BottomSheetDialogFragment
 
+    lateinit var prefsSortData : SharedPreferences
+
+    lateinit var imm : InputMethodManager
+
     private val TAG = "testsss"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,12 +95,14 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         colorDefault = prefsColors.getString("colorDefault","green").toString()
         colorDefaultMode = prefsColors.getString("colorDefaultMode","allcolor").toString()
 
-        val editor = prefsColors.edit()
-        editor.putInt("green",4)
-        editor.putInt("yellow",3)
-        editor.putInt("blue",2)
-        editor.putInt("red",1)
-        editor.apply()
+        prefsColors.getInt("green",4)
+        prefsColors.getInt("yellow",3)
+        prefsColors.getInt("blue",2)
+        prefsColors.getInt("red",1)
+
+        prefsSortData = this.getSharedPreferences("sortData",Context.MODE_PRIVATE)
+
+        imm= getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
 
         val layoutManager = LinearLayoutManager(this)
         notesRecyclerView.layoutManager = layoutManager
@@ -112,7 +119,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
                 if(item.resultCode == 1000000000){
                     val uuid = item.data?.getStringExtra("uuid")
-                    val title = item.data?.getStringExtra("title")
+                    var title = item.data?.getStringExtra("title")
                     val content = item.data?.getStringExtra("content")
                     val color = item.data?.getStringExtra("color")
                     val createDate = item.data?.getStringExtra("createDate")
@@ -145,6 +152,11 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
 
                     }else{
                         //create
+
+                        if(title == ""){
+                            title = content
+                        }
+
                         val values1 = ContentValues().apply {
                             put("uuid", uuid)
                             put("title", title)
@@ -159,6 +171,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                         checkBoxStateList.add(checkBoxState(false))
                         adapter.notifyItemInserted(0)
                         adapter.notifyItemRangeChanged(0,notesList.size+1)
+
+                        notesRecyclerView.scrollToPosition(0)
                     }
                 }else if(item.resultCode == 0){
                     get_Notes()
@@ -181,17 +195,44 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         searchview.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
 
             override fun onQueryTextSubmit(query: String?): Boolean {
-                if (query != null) {
-                    if(query.isNotEmpty()){
-                        Log.d(TAG, "onQueryTextSubmit: "+query)
-                    }
-                }
                 searchview.clearFocus()
+                imm.hideSoftInputFromWindow(searchview.windowToken,0)
+
                 return false
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
                 Log.d(TAG, "onQueryTextChange: "+newText)
+
+                notesList.clear()
+                checkBoxStateList.clear()
+
+                if(newText == ""){
+                    get_Notes()
+                }else{
+                    val cursor: Cursor
+
+                    cursor = db.rawQuery("select * from Notes where title like ?", arrayOf("%$newText%"))
+
+                    if (cursor.moveToFirst()) {
+                        do {
+                            val uuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
+                            val title = cursor.getString(cursor.getColumnIndexOrThrow("title"))
+                            val content = cursor.getString(cursor.getColumnIndexOrThrow("content"))
+                            val color = cursor.getString(cursor.getColumnIndexOrThrow("color"))
+                            val createDate = cursor.getString(cursor.getColumnIndexOrThrow("createDate"))
+                            val updateDate = cursor.getString(cursor.getColumnIndexOrThrow("updateDate"))
+                            val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
+
+                            notesList.add(Notes(uuid,title,content,false,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
+                            checkBoxStateList.add(checkBoxState(isChecked))
+                        } while (cursor.moveToNext())
+                    }
+                    cursor.close()
+
+                    adapter.notifyDataSetChanged()
+                }
+
                 return false
             }
         })
@@ -321,7 +362,8 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
             }
             R.id.sortBy ->{
-
+                bottomSheetFragment = SortDataFragment()
+                bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
             }
         }
         return super.onOptionsItemSelected(item)
@@ -353,6 +395,20 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             toolbar.menu.getItem(0).setIcon(AppCompatResources.getDrawable(this, R.drawable.baseline_color_lens_24))
             get_Notes()
             Thread.sleep(50)
+        }else if(value == "edit_color_finish"){
+            if(prefsSortData.getString("sortDataDefault","0") == "sortBy_color"){
+                get_Notes()
+                Thread.sleep(50)
+            }
+        } else if(value == "sortBy_updateDate"){
+            get_Notes()
+            Thread.sleep(50)
+        }else if(value == "sortBy_createDate"){
+            get_Notes()
+            Thread.sleep(50)
+        }else if(value == "sortBy_color"){
+            get_Notes()
+            Thread.sleep(50)
         }
     }
 
@@ -382,7 +438,15 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 val isChecked = cursor.getInt(cursor.getColumnIndexOrThrow("isChecked")) > 0
 
                 notesList.add(Notes(uuid,title,content,false,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
-                notesList.sortByDescending { notes -> notes.updateDate  }
+                val sortDataDefault = prefsSortData.getString("sortDataDefault","sortBy_updateDate")
+                if(sortDataDefault == "sortBy_updateDate"){
+                    notesList.sortByDescending { notes -> notes.updateDate  }
+                }else if(sortDataDefault == "sortBy_createDate"){
+                    notesList.sortByDescending { notes -> notes.createDate  }
+                }else if(sortDataDefault == "sortBy_color"){
+                    notesList.sortByDescending { notes -> notes.colorLevel  }
+                }
+
                 checkBoxStateList.add(checkBoxState(isChecked))
             } while (cursor.moveToNext())
         }
@@ -460,11 +524,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val notes = notesList[position]
 
-            if(notes.title==""){
-                holder.notesTitle.text = notes.content
-            }else{
-                holder.notesTitle.text = notes.title
-            }
+            holder.notesTitle.text = notes.title
 
             holder.notesDate.text = notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
             holder.notesContent.text = notes.content

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="300dp"
+    android:orientation="vertical"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+    <RadioButton
+        android:id="@+id/sortBy_updateDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="修改時間"
+        android:textSize="30sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#000" />
+
+    <RadioButton
+        android:id="@+id/sortBy_createDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="建立時間"
+        android:textSize="30sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#000" />
+
+    <RadioButton
+        android:id="@+id/sortBy_color"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="顏色"
+        android:textSize="30sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#000" />
+
+</LinearLayout>

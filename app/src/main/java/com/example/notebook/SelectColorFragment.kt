@@ -274,7 +274,7 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
             radioButton4.setChecked(false)
             radioButton0.setChecked(true)
 
-            val color = prefsColors.getString("color0","allcolor")
+            val color = prefsColors.getString("color0","allcolor") //好像可以直接 val color = "allcolor"
             val editor = prefsColors.edit()
             if(isActivity == "MainActivity"){
                 if (editor != null) {
@@ -363,6 +363,8 @@ class SelectColorFragment() : BottomSheetDialogFragment() {
                         " blue =" + (prefsColors.getInt("blue",0) ?: 0) + " red =" + (prefsColors.getInt("red",0) ?: 0))
 
                 imm.hideSoftInputFromWindow(edit_finish.windowToken,0)
+
+                radioButtonListener.sendValue("edit_color_finish")
             } //edit_finish.text.toString() == "完成"
         } //edit_finish.setOnClickListener
     } //onViewCreated

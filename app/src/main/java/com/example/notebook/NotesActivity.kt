@@ -205,6 +205,12 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
         }else if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]&&colorString== color){
 
         }else{
+            if(title.text.toString() == ""){
+                title.setText(content.text.toString())
+                titleString = content.text.toString()
+                titleList[titleList.size-1] = content.text.toString()
+            }
+
             intent.putExtra("title", title.text.toString())
             intent.putExtra("content", content.text.toString())
             updateDate = LocalDateTime.now().toString()
@@ -291,6 +297,12 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
                 db.insert("Notes", null, values1)
             }else{
                 Log.d(TAG, "更改資料")
+
+                if(title.text.toString() == ""){
+                    title.setText(content.text.toString())
+                    titleString = content.text.toString()
+                    titleList[titleList.size-1] = content.text.toString()
+                }
 
                 val values1 = ContentValues().apply {
                     put("title", title.text.toString())
