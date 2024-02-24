@@ -123,24 +123,9 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     val color = item.data?.getStringExtra("color")
                     val createDate = item.data?.getStringExtra("createDate")
                     val updateDate = item.data?.getStringExtra("updateDate")
+                    val mode = item.data?.getStringExtra("mode")
 
-                    var update = false
-                    val cursor = db.rawQuery("select uuid from Notes where uuid like ?", arrayOf(uuid))
-                    if (cursor.moveToFirst()) {
-                        do {
-                            val notesuuid = cursor.getString(cursor.getColumnIndexOrThrow("uuid"))
-                            if(notesuuid == uuid){
-                                Log.d(TAG, "update: true")
-                                update = true
-                            }else{
-                                Log.d(TAG, "update: false")
-                                update = false
-                            }
-                        } while (cursor.moveToNext())
-                    }
-                    cursor.close()
-
-                    if(update){
+                    if(mode == "1"){
                         //update
                         if(prefsNotesList.getInt("notesList",-1) == -1){
                             Log.d(TAG, "prefsNotesList.getInt(\"notesList\",-1) == -1")
@@ -149,24 +134,10 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                             adapter.notifyItemChanged(prefsNotesList.getInt("notesList",-1))
                         }
 
-                    }else{
+                    }else if(mode == "2"){
                         //create
-                        if(title == ""){
-                            title = content
-                        }
-
-                        val values1 = ContentValues().apply {
-                            put("uuid", uuid)
-                            put("title", title)
-                            put("content", content)
-                            put("color", color)
-                            put("createDate", createDate)
-                            put("updateDate", updateDate)
-                        }
-                        db.insert("Notes", null, values1)
-
                         notesList.add(0,Notes(uuid,title,content,false,color,prefsColors.getInt(color,0),LocalDateTime.parse(createDate),LocalDateTime.parse(updateDate)))
-                        checkBoxStateList.add(checkBoxState(false))
+                        checkBoxStateList.add(0,checkBoxState(false))
                         adapter.notifyItemInserted(0)
                         adapter.notifyItemRangeChanged(0,notesList.size+1)
                         notesRecyclerView.scrollToPosition(0)
@@ -186,6 +157,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             intentNotesActivity.putExtra("color", prefsColors.getString("colorDefault","green")) //預設顏色
             intentNotesActivity.putExtra("createDate","")
             intentNotesActivity.putExtra("updateDate","")
+            intentNotesActivity.putExtra("mode","2")
             notesactivityLauncher.launch(intentNotesActivity)
         }
 
@@ -246,11 +218,11 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             }
 
             //recyclerview notifyItem
-            for(delete in checkBoxList){
-                adapter.notifyItemRemoved(delete)
-                adapter.notifyItemRangeChanged(delete,notesList.size-1)
-            }
-            adapter.notifyItemRangeChanged(0,notesList.size)
+//            for(delete in checkBoxList){
+//                adapter.notifyItemRemoved(delete)
+//                adapter.notifyItemRangeChanged(delete,notesList.size-1)
+//            }
+//            adapter.notifyItemRangeChanged(0,notesList.size)
 
             checkBoxList.clear()
             checkBoxStateList.clear()
@@ -266,6 +238,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
             pagenavigation.setVisibility(View.VISIBLE)
             delete_button.setVisibility(View.GONE)
 
+            adapter.notifyDataSetChanged()
         }
 
         onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
@@ -292,7 +265,9 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     pagenavigation.setVisibility(View.VISIBLE)
                     delete_button.setVisibility(View.GONE)
 
-                    adapter.notifyItemRangeChanged(0,notesList.size)
+                    //adapter.notifyItemRangeChanged(0,notesList.size)
+
+                    adapter.notifyDataSetChanged()
                 }else{
                     finish()
                 }
@@ -322,7 +297,9 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                 pagenavigation.setVisibility(View.VISIBLE)
                 delete_button.setVisibility(View.GONE)
 
-                adapter.notifyItemRangeChanged(0,notesList.size)
+                //adapter.notifyItemRangeChanged(0,notesList.size)
+
+                adapter.notifyDataSetChanged()
             }else{
                 finish()
             }
@@ -473,6 +450,7 @@ class MainActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListene
                     intentNotesActivity.putExtra("color", notes.color)
                     intentNotesActivity.putExtra("createDate",notes.createDate.toString())
                     intentNotesActivity.putExtra("updateDate",notes.updateDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                    intentNotesActivity.putExtra("mode","1")
                     notesactivityLauncher.launch(intentNotesActivity)
                 }else{
                     val pos : Int = holder.notesCheckBox.getTag() as Int

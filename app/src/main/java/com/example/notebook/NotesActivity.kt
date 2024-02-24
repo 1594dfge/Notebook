@@ -49,6 +49,8 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
     lateinit var createDate : String
     lateinit var updateDate : String
 
+    lateinit var mode : String
+
     //控制鍵盤顯示(顯示 不顯示)
     lateinit var imm : InputMethodManager
 
@@ -77,6 +79,7 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
         color = intent.getStringExtra("color").toString()
         createDate = intent.getStringExtra("createDate").toString()
         updateDate = intent.getStringExtra("updateDate").toString()
+        mode = intent.getStringExtra("mode").toString()
         latestUpateDate.setText("最後編輯:"+updateDate)
 
         titleList.add(title.text.toString())
@@ -200,6 +203,9 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
             }else{
                 db.execSQL("delete from Notes where uuid = ?", arrayOf(uuid))
 
+                uuid = ""
+                color = prefsColors.getString("colorDefault","green").toString()
+                sendValue(color)
                 setResult(0)
             }
         }else if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]&&colorString== color){
@@ -218,12 +224,24 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
             Log.d(TAG, "db_insert_update: "+latestUpateDate)
             intent.putExtra("updateDate", updateDate)
 
+            intent.putExtra("mode",mode)
+
             if(uuid == ""){
                 Log.d(TAG, "新增資料")
 
                 uuid = UUID.randomUUID().toString()
                 createDate = LocalDateTime.now().toString()
                 color = prefsColors.getString("colorDefault","green").toString()
+
+                val values1 = ContentValues().apply {
+                    put("uuid", uuid)
+                    put("title", title.text.toString())
+                    put("content", content.text.toString())
+                    put("color", color)
+                    put("createDate", createDate)
+                    put("updateDate", updateDate)
+                }
+                db.insert("Notes",null,values1)
             }else{
                 Log.d(TAG, "更改資料")
 
@@ -274,6 +292,10 @@ class NotesActivity : AppCompatActivity(), SelectColorFragment.RadioButtonListen
 
             }else{
                 db.execSQL("delete from Notes where uuid = ?", arrayOf(uuid))
+
+                uuid = ""
+                color = prefsColors.getString("colorDefault","green").toString()
+                sendValue(color)
             }
         }else if(titleString== titleList[titleList.size-1]&&contentString== contentList[contentList.size-1]&&colorString== color){
 
